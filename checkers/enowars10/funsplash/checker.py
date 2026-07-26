@@ -113,7 +113,7 @@ class Checker(BaseChecker):
         self.assert_(300 <= r.status_code < 400, "join gagal (bukan redirect)", Status.MUMBLE)
         _sync_cookie_header(s)
 
-        me = s.get("/napi/me")
+        me = s.get("/napi/me", allow_redirects=False)
         self.assert_eq(me.status_code, 200, "join gagal (sesi tak valid)", Status.MUMBLE)
         self.assert_eq(me.json().get("username"), u, "sesi user salah stlh join", Status.MUMBLE)
 
@@ -145,7 +145,7 @@ class Checker(BaseChecker):
         # Bukti login benar2 berhasil (bukan cuma "request login tak error")
         # — lihat catatan #5/#3 di atas. Kegagalan di sini = MUMBLE, karena
         # ini soal autentikasi servis, bukan flag yg hilang/berubah.
-        me = s.get("/napi/me")
+        me = s.get("/napi/me", allow_redirects=False)
         self.assert_eq(me.status_code, 200, "login gagal (sesi tak valid)", Status.MUMBLE)
         self.assert_eq(me.json().get("username"), st["u"], "sesi user salah stlh login", Status.MUMBLE)
 
