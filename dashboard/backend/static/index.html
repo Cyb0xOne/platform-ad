@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AD Dashboard — Cyb0x1</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%233987e5'/%3E%3Ctext x='8' y='12' font-size='10' text-anchor='middle' fill='white' font-family='sans-serif'%3EA%3C/text%3E%3C/svg%3E" />
+<style>
+  /* Tema gelap tunggal: dashboard ops sengaja berkomitmen ke satu tampilan.
+     Warna dari palet dataviz tervalidasi (slot kategorikal 1-2 + status). */
+  :root {
+    --plane:      #0d0d0d;
+    --surface:    #1a1a19;
+    --ink:        #ffffff;
+    --ink-2:      #c3c2b7;
+    --muted:      #898781;
+    --grid:       #2c2c2a;
+    --axis:       #383835;
+    --ring:       rgba(255,255,255,0.10);
+    --team-1:     #3987e5;  /* biru  */
+    --team-2:     #d95926;  /* oranye */
+    --up:         #0ca30c;  /* good     */
+    --down:       #d03b3b;  /* critical */
+    --mumble:     #fab219;  /* warning  */
+    --error:      #ec835a;  /* serious  */
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--plane); color: var(--ink);
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  header {
+    display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
+    padding: 18px 24px; border-bottom: 1px solid var(--ring);
+  }
+  header h1 { font-size: 18px; margin: 0; letter-spacing: .3px; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  .pill {
+    margin-left: auto; display: flex; gap: 18px; align-items: baseline;
+    font-variant-numeric: tabular-nums;
+  }
+  .pill b { font-size: 20px; }
+  .pill span { color: var(--muted); font-size: 12px; display: block; }
+  main { padding: 24px; max-width: 1100px; margin: 0 auto; display: grid; gap: 24px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--ring);
+    border-radius: 10px; padding: 18px 20px;
+  }
+  .card h2 { margin: 0 0 14px; font-size: 13px; font-weight: 600;
+             text-transform: uppercase; letter-spacing: .6px; color: var(--ink-2); }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--grid); }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  td.num, th.num { text-align: right; }
+  tr:last-child td { border-bottom: none; }
+  .rank { color: var(--muted); width: 24px; }
+  .team-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%;
+              margin-right: 7px; vertical-align: baseline; }
+  .svc {
+    display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px;
+    border-radius: 6px; font-size: 12px; font-variant-numeric: tabular-nums;
+    border: 1px solid var(--ring);
+  }
+  .svc .ico { font-size: 11px; }
+  .st-UP      { color: var(--up); }
+  .st-DOWN    { color: var(--down); }
+  .st-MUMBLE, .st-CORRUPT { color: var(--mumble); }
+  .st-ERROR   { color: var(--error); }
+  .st-NA      { color: var(--muted); }
+  .svcgrid { display: flex; gap: 8px; flex-wrap: wrap; }
+  .legend { display: flex; gap: 18px; margin-bottom: 10px; font-size: 12px; color: var(--ink-2); }
+  .legend i { width: 12px; height: 2px; display: inline-block; vertical-align: middle; margin-right: 6px; }
+  .att-row td:first-child { color: var(--muted); white-space: nowrap; }
+  .arrow { color: var(--muted); margin: 0 6px; }
+  svg text { fill: var(--muted); font-size: 11px; }
+  .foot { color: var(--muted); font-size: 12px; text-align: center; padding-bottom: 30px; }
+  .empty { color: var(--muted); padding: 8px 10px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Cyb0x1 · Attack-Defense</h1>
+  <span class="sub">dashboard read-only</span>
+  <div class="pill">
+    <div><b id="round">–</b><span>ronde</span></div>
+    <div><b id="state">–</b><span>status</span></div>
+  </div>
+</header>
+
+<main>
+  <section class="card">
+    <h2>Scoreboard</h2>
+    <table id="board"><thead></thead><tbody></tbody></table>
+  </section>
+
+  <section class="card">
+    <h2>Timeline skor</h2>
+    <div class="legend" id="tl-legend"></div>
+    <div id="chart"></div>
+  </section>
+
+  <section class="card">
+    <h2>Log serangan</h2>
+    <table id="attacks"><thead>
+      <tr><th>waktu</th><th>penyerang</th><th></th><th>korban</th><th>service</th></tr>
+    </thead><tbody></tbody></table>
+  </section>
+</main>
+<div class="foot">auto-refresh tiap 5 detik · sumber: Postgres ForcAD (read-only)</div>
+
+<script>
+const TEAM_COLORS = ['var(--team-1)', 'var(--team-2)'];
+const ICON = { UP:'●', DOWN:'▼', MUMBLE:'◆', CORRUPT:'◆', ERROR:'■', 'N/A':'○' };
+const j = (u) => fetch(u).then(r => r.json());
+const esc = (s) => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+let TASKS = [];
+const colorFor = (teamId, ranked) => TEAM_COLORS[ranked.findIndex(t => t.team_id === teamId) % 2];
+
+async function refreshGame() {
+  const g = await j('/api/game');
+  document.getElementById('round').textContent = g.real_round ?? '–';
+  document.getElementById('state').textContent = g.game_running ? 'JALAN' : 'STOP';
+}
+
+async function refreshBoard() {
+  const d = await j('/api/scoreboard');
+  TASKS = d.tasks;
+  const head = document.querySelector('#board thead');
+  head.innerHTML = '<tr><th class="rank">#</th><th>tim</th><th class="num">total</th><th>service</th></tr>';
+  const body = document.querySelector('#board tbody');
+  body.innerHTML = d.teams.map((t, i) => {
+    const dot = `<span class="team-dot" style="background:${TEAM_COLORS[i%2]}"></span>`;
+    const svcs = d.tasks.map(tk => {
+      const s = t.services[tk.id];
+      if (!s) return '';
+      const cls = s.status.replace('/', '');
+      return `<span class="svc st-${cls}" title="${tk.name}: SLA ${s.sla}% · stolen ${s.stolen} · lost ${s.lost}">
+        <span class="ico">${ICON[s.status] ?? '○'}</span>${esc(tk.name)} ${s.score}</span>`;
+    }).join('');
+    return `<tr>
+      <td class="rank">${t.pos}</td>
+      <td>${dot}${esc(t.team)}</td>
+      <td class="num"><b>${t.total}</b></td>
+      <td><div class="svcgrid">${svcs}</div></td></tr>`;
+  }).join('');
+  return d.teams;
+}
+
+async function refreshAttacks() {
+  const rows = await j('/api/attacks?limit=40');
+  const body = document.querySelector('#attacks tbody');
+  if (!rows.length) { body.innerHTML = '<tr><td colspan="5" class="empty">belum ada serangan</td></tr>'; return; }
+  body.innerHTML = rows.map(r => {
+    const t = new Date(r.submit_time).toLocaleTimeString('id-ID');
+    return `<tr class="att-row"><td>${t}</td><td>${esc(r.attacker)}</td>
+      <td class="arrow">→</td><td>${esc(r.victim)}</td><td>${esc(r.service)}</td></tr>`;
+  }).join('');
+}
+
+function drawTimeline(ranked) {
+  const data = [];
+  j('/api/timeline').then(rows => {
+    const W = 1040, H = 240, P = { l: 44, r: 16, t: 16, b: 26 };
+    const byTeam = {};
+    let maxR = 0, maxS = 0;
+    rows.forEach(r => {
+      (byTeam[r.team_id] ??= { name: r.team, pts: [] }).pts.push([r.round, r.score]);
+      maxR = Math.max(maxR, r.round); maxS = Math.max(maxS, r.score);
+    });
+    maxS = maxS || 1; maxR = maxR || 1;
+    const x = r => P.l + (r / maxR) * (W - P.l - P.r);
+    const y = s => H - P.b - (s / maxS) * (H - P.t - P.b);
+
+    const grid = [0, .25, .5, .75, 1].map(f => {
+      const yy = y(maxS * f);
+      return `<line x1="${P.l}" y1="${yy}" x2="${W-P.r}" y2="${yy}" stroke="var(--grid)"/>
+        <text x="${P.l-8}" y="${yy+3}" text-anchor="end">${Math.round(maxS*f)}</text>`;
+    }).join('');
+
+    const teamIds = Object.keys(byTeam);
+    const lines = teamIds.map((tid) => {
+      const col = colorFor(Number(tid), ranked);
+      const pts = byTeam[tid].pts.sort((a,b)=>a[0]-b[0]);
+      const path = pts.map((p,i) => `${i?'L':'M'}${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join(' ');
+      const last = pts[pts.length-1];
+      const dot = last ? `<circle cx="${x(last[0])}" cy="${y(last[1])}" r="4" fill="${col}"
+                          stroke="var(--surface)" stroke-width="2"/>` : '';
+      return `<path d="${path}" fill="none" stroke="${col}" stroke-width="2"
+              stroke-linejoin="round" stroke-linecap="round"/>${dot}`;
+    }).join('');
+
+    document.getElementById('chart').innerHTML =
+      `<svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img"
+            aria-label="Timeline skor per tim per ronde">
+        ${grid}
+        <line x1="${P.l}" y1="${H-P.b}" x2="${W-P.r}" y2="${H-P.b}" stroke="var(--axis)"/>
+        <text x="${W-P.r}" y="${H-6}" text-anchor="end">ronde ${maxR}</text>
+        ${lines}
+      </svg>`;
+
+    // legend + direct label — identitas tidak lewat warna saja
+    document.getElementById('tl-legend').innerHTML = ranked.map((t,i) =>
+      `<span><i style="background:${TEAM_COLORS[i%2]}"></i>${esc(t.team)}</span>`).join('');
+  });
+}
+
+async function tick() {
+  try {
+    await refreshGame();
+    const ranked = await refreshBoard();
+    await refreshAttacks();
+    drawTimeline(ranked);
+  } catch (e) { /* biarkan tampilan lama saat glitch sesaat */ }
+}
+tick();
+setInterval(tick, 5000);
+</script>
+</body>
+</html>

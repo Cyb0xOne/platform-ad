@@ -1,0 +1,22 @@
+# Dashboard custom — dijalankan di host, di network forcad_default agar bisa
+# menyambung ke Postgres ForcAD (alias `postgres`) secara read-only.
+#
+# FORCAD_DSN diambil dari .env (TIDAK di-commit; berisi password DB ForcAD).
+# Buat .env dari kredensial engine — lihat .env.example. Cara cepat di server:
+#   set -a; . ~/adlab/forcad/docker_config/postgres_environment.env; set +a
+#   echo "FORCAD_DSN=postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres:5432/$POSTGRES_DB" > .env
+
+services:
+  dashboard:
+    build: ./backend
+    image: adlab/dashboard:latest
+    container_name: adlab-dashboard
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8090:8000"
+    networks: [forcad_default]
+
+networks:
+  forcad_default:
+    external: true

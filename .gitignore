@@ -13,6 +13,7 @@ dist/
 # Env & secrets
 .env
 .env.*
+!.env.example
 *.local
 secrets/
 *.key
@@ -30,3 +31,4 @@ forcad/config.yml   # generated per-game; commit config.yml.example instead
 *.swp
 .idea/
 .vscode/
+.playwright-mcp/

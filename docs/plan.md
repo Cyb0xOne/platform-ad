@@ -376,7 +376,17 @@ Skrip deploy dijalankan dari lokal via SSH dgn PATH eksplisit.
   ≤100 (satu request sekaligus juga menghindari rate-limit nginx yang membalas 429).
   Daftar username target di sini diambil dari DB sebagai oracle — di A/D sungguhan datang dari
   `/api/client/attack_data/` bila adapter di-set `checker_type: pfr`.
-- **Fase 3 — Dashboard read-only:** scoreboard + detail serang/bertahan + timeline.
+- **Fase 3 — Dashboard read-only: ✅ TERBUKTI.** App terpisah (`dashboard/`, FastAPI + SPA
+  vanilla, container di network `forcad_default`, port `:8090`). Empat endpoint READ-ONLY ke
+  Postgres ForcAD: `/api/scoreboard` (grid tim×service + ranking), `/api/timeline` (skor per
+  ronde), `/api/attacks` (log serang: stolenflags ⋈ flags ⋈ teams), `/api/game` (ronde).
+  UI: scoreboard grid dgn badge status (ikon+label, bukan warna saja), grafik timeline 2 tim
+  (palet dataviz tervalidasi), tabel serangan; auto-refresh 5 dtk.
+  **Verifikasi #1 terpenuhi:** total dashboard memakai formula ctftime PERSIS
+  (`Σ score × checks_passed/checks`, `game.py:construct_ctftime_scoreboard`), dan cocok byte-for-byte
+  dgn hitungan langsung dari `teamtasks`. Selisih vs endpoint `/ctftime/` engine murni live-vs-cached
+  (engine pakai `get_cached_game_state`, dashboard live) — bukan beda formula.
+  Kredensial DB lewat `.env` (tidak di-commit); `.env.example` sebagai template.
 - **Fase 4 — Panel admin:** start/stop ronde, kelola tim/service, trigger checker manual.
 - **Fase 5 — Perluasan:** tambah framework lain (blitz `check.py`, omctf `checker.py`) & service lain,
   + dokumen alur patch untuk tim. Tambah tim ke-3 **hanya kalau RAM mengizinkan**.
