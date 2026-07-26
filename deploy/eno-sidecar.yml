@@ -1,0 +1,49 @@
+# Sidecar ENOWARS — dijalankan DI HOST, bukan di dalam VM tim.
+#
+# Kenapa di host: checker ENOWARS bukan skrip melainkan service HTTP. Yang
+# memanggilnya adalah container celery ForcAD, jadi ia harus berada di network
+# `forcad_default`. Ia lalu menghubungi service tim di VM lewat jalur yang
+# sama dengan checker lain (rule nftables dari Fase 0.5).
+#
+# Jadi arah panggilannya:
+#   celery --(HTTP)--> adlab-eno-shetcode --(HTTP)--> service tim di VM
+#
+# MongoDB wajib: `enochecker3` menyimpan state antar-aksi di ChainDB, dan
+# ChainDB dikunci `taskChainId`. Tanpa mongo, getflag tidak akan pernah
+# menemukan data yang ditaruh putflag.
+
+services:
+  adlab-eno-shetcode:
+    image: adlab/shetcode-checker:latest
+    container_name: adlab-eno-shetcode
+    restart: unless-stopped
+    environment:
+      MONGO_ENABLED: "1"
+      MONGO_HOST: adlab-eno-mongo
+      MONGO_PORT: "27017"
+      MONGO_USER: shetcode
+      MONGO_PASSWORD: shetcode
+    depends_on:
+      - adlab-eno-mongo
+    networks: [forcad_default]
+    mem_limit: 1g
+
+  adlab-eno-mongo:
+    image: mongo
+    container_name: adlab-eno-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: shetcode
+      MONGO_INITDB_ROOT_PASSWORD: shetcode
+    volumes:
+      - eno_mongo_data:/data/db
+    networks: [forcad_default]
+    mem_limit: 1g
+
+networks:
+  # dibuat oleh compose ForcAD (nama proyek "forcad")
+  forcad_default:
+    external: true
+
+volumes:
+  eno_mongo_data:

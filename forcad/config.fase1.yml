@@ -1,0 +1,88 @@
+# ForcAD config — FASE 1 (adapter pertama masuk permainan)
+#
+# Beda dari config.fase05.yml: menambah task `Licenser` yang dijalankan lewat
+# ADAPTER saarCTF. Task `example` sengaja DIPERTAHANKAN sebagai kontrol — kalau
+# suatu saat Licenser DOWN tapi example UP, masalahnya di adapter/service, bukan
+# di infrastruktur (VM, jaringan, engine).
+#
+# round_time dinaikkan 30 -> 120 detik. Kontrak ForcAD menyarankan
+# round_time >= 4x checker_timeout, dan checker saarCTF butuh beberapa detik
+# per aksi (register, login, upload, download). 3 aksi x 20 s = 60 s < 120 s.
+#
+# Pasang: salin ke ~/adlab/forcad/config.yml lalu reset+clean+setup+start
+# (lihat deploy/fase05-cutover.sh — `clean` saja tidak cukup, docker_volumes
+# milik root harus dihapus dengan sudo).
+
+game:
+  mode: classic
+  timezone: Asia/Jakarta
+  start_time: 2026-07-26 00:00:00
+
+  # round_time >= 4x checker_timeout terbesar. Checker birthdaygram paling
+  # lambat (banyak HTTP + pembuatan gambar steganografi) dengan timeout 30 s,
+  # jadi 4 x 30 = 120 s minimum; dipakai 180 s agar longgar.
+  round_time: 180
+  flag_lifetime: 5
+
+  default_score: 2500
+  game_hardness: 10.0
+  inflation: true
+
+  checkers_path: /checkers/
+  env_path: /checkers/bin/
+
+tasks:
+  # Kontrol: checker bawaan ForcAD, bukan lewat adapter.
+  - name: example
+    checker: test_service/checker.py
+    checker_type: ''
+    checker_timeout: 10
+    puts: 1
+    gets: 1
+    places: 3
+
+  # saarCTF Licenser lewat adapter. checker_type dikosongkan (tanpa tag pfr):
+  # stdout PUT masuk ke private_flag_data, tidak tampil di scoreboard. Flag ID
+  # asli saarCTF (username) ikut di dalam JSON itu; kalau nanti ingin
+  # dipublikasikan ke penyerang seperti di saarCTF asli, ganti ke `pfr` dan
+  # pindahkan state privat ke stderr.
+  - name: Licenser
+    checker: saar_licenser/checker.py
+    checker_type: ''
+    checker_timeout: 20
+    puts: 1
+    gets: 1
+    places: 1
+
+  # FAUST birthdaygram lewat adapter. Catatan perilaku: kalau host sama sekali
+  # tak terhubung, checker ini mengembalikan MUMBLE (103), bukan DOWN (104) —
+  # itu keputusan `check_service()` aslinya yang menangkap TimeoutException dan
+  # membalas CheckResult.FAULTY. Dibiarkan setia; bagi skor ForcAD keduanya
+  # sama-sama bukan UP.
+  - name: birthdaygram
+    checker: faust_birthdaygram/checker.py
+    checker_type: ''
+    checker_timeout: 30
+    puts: 1
+    gets: 1
+    places: 1
+
+  # ENOWARS shetcode lewat adapter HTTP + sidecar (adlab-eno-shetcode + mongo).
+  # `places: 3` DISENGAJA: checker punya putflag/getflag varian 0,1,2 dan
+  # ForcAD mengirim nomor `vuln` ke checker — adapter memetakannya langsung ke
+  # `variantId`. Ketiganya sudah diuji lolos put+get.
+  # Perilaku yang sama dengan birthdaygram: host mati -> MUMBLE (103), bukan
+  # DOWN, karena checker aslinya membalas MumbleException saat koneksi gagal.
+  - name: shetcode
+    checker: eno_shetcode/checker.py
+    checker_type: ''
+    checker_timeout: 40
+    puts: 1
+    gets: 1
+    places: 3
+
+teams:
+  - name: "Cyb0x1 Athena"
+    ip: 10.13.37.11
+  - name: "Cyb0x1 Ares"
+    ip: 10.13.37.12

@@ -1,0 +1,46 @@
+# Compose birthdaygram untuk dijalankan DI DALAM VM tim.
+#
+# Beda dari compose asli FAUST, dan alasannya:
+#
+# 1. Blok `networks: enable_ipv6 + subnet fd42:...` DIHAPUS.
+#    FAUST CTF berjalan di IPv6; lab kita IPv4. Docker di VM belum tentu
+#    punya IPv6 aktif, dan itu akan menggagalkan `up` tanpa alasan yang
+#    berhubungan dengan service. Sisi checker sudah ditangani adapter:
+#    `faust_adapter.py` menambal URL bergaya `http://[10.13.37.11]:3000`
+#    menjadi bentuk IPv4 yang sah.
+#
+# 2. `build:` DIHAPUS, hanya `image:` yang dipakai. Image dibangun sekali di
+#    host lalu disebar lewat `docker save | ssh docker load` — jalur virbr
+#    jauh lebih cepat daripada tiap VM menarik/membangun sendiri.
+#
+# 3. Service `deps` (scale 0) DIHAPUS — itu hanya artefak build.
+
+services:
+  webserver:
+    image: faust.cs.fau.de:5000/birthdaygram-webserver
+    restart: unless-stopped
+    init: true
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    volumes:
+      - birthdaygram_data:/var/lib/postgresql/data/
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: birthdaydb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d birthdaydb"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 10s
+
+volumes:
+  birthdaygram_data:

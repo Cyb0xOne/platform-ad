@@ -1,0 +1,46 @@
+# ForcAD config — FASE 0.5 (cutover ke VM, checker masih example)
+#
+# Beda dari config.fase0.yml hanya `teams[].ip`: dari container docker
+# (team1-svc / team2-svc) pindah ke IP VM di network adnet.
+#
+# Checker sengaja MASIH example bawaan ForcAD. Tujuannya memisahkan dua
+# pertanyaan yang kalau digabung akan sulit di-debug:
+#   Fase 0.5 -> "topologi VM sudah benar?"   (checker sudah terbukti baik)
+#   Fase 1   -> "adapter kita sudah benar?"  (topologi sudah terbukti baik)
+#
+# Syarat pakai: deploy/fase05-gate.sh sudah LOLOS, dan example service sudah
+# jalan di dalam kedua VM pada port 10000.
+#
+# Pasang: salin ke ~/adlab/forcad/config.yml lalu
+#   .venv/bin/python control.py reset && .venv/bin/python control.py setup
+#   .venv/bin/python control.py start --fast
+
+game:
+  mode: classic
+  timezone: Asia/Jakarta
+  start_time: 2026-07-26 00:00:00
+
+  round_time: 30
+  flag_lifetime: 5
+
+  default_score: 2500
+  game_hardness: 10.0
+  inflation: true
+
+  checkers_path: /checkers/
+  env_path: /checkers/bin/
+
+tasks:
+  - name: example
+    checker: test_service/checker.py
+    checker_type: ''
+    checker_timeout: 5
+    puts: 1
+    gets: 1
+    places: 3
+
+teams:
+  - name: "Cyb0x1 Athena"
+    ip: 10.13.37.11
+  - name: "Cyb0x1 Ares"
+    ip: 10.13.37.12

@@ -1,0 +1,32 @@
+# FASE 0 — dua "vulnbox" sementara berupa container, bukan VM.
+#
+# Tujuannya cuma membuktikan engine ForcAD hidup: tick jalan, checker dieksekusi
+# per tim, scoreboard bergerak. Service-nya example bawaan ForcAD (tests/service,
+# HTTP di port 10000) — persis yang dipakai test suite upstream.
+#
+# Nama container = nilai `teams[].ip` di config.yml. ForcAD memanggil checker
+# dengan host itu, dan DNS internal docker yang meresolusinya.
+#
+# Di Fase 1 file ini DIBUANG: tiap tim pindah ke VM sendiri dan `teams[].ip`
+# jadi IP libvirt yang sesungguhnya.
+#
+# Pasang di server: ~/adlab/teams/docker-compose.yml
+#   docker compose -f ~/adlab/teams/docker-compose.yml up -d --build
+
+services:
+  team1-svc:
+    build: ../forcad/tests/service
+    container_name: team1-svc
+    restart: unless-stopped
+    networks: [forcad_default]
+
+  team2-svc:
+    build: ../forcad/tests/service
+    container_name: team2-svc
+    restart: unless-stopped
+    networks: [forcad_default]
+
+networks:
+  # dibuat oleh compose ForcAD (nama proyek "forcad")
+  forcad_default:
+    external: true

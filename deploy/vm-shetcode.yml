@@ -1,0 +1,81 @@
+# Compose shetcode untuk dijalankan DI DALAM VM tim.
+#
+# Beda dari compose asli ENOWARS:
+#   * `build:` diganti `image:` — image dibangun sekali di host lalu disebar
+#     lewat `docker save | ssh docker load`.
+#   * batas memori diturunkan. Compose asli memberi php 1200m + db 600m +
+#     redis 200m = 2 GB plafon di VM 3 GB, padahal lab ini cuma 2 tim dengan
+#     lalu lintas checker yang ringan. Plafon bukan reservasi, tapi menurunkan-
+#     nya menghindari satu container melahap seluruh VM saat ada yang salah.
+#   * `cap_drop`/`security_opt` asli DIPERTAHANKAN — itu bagian dari desain
+#     keamanan service, bukan artefak build.
+#
+# Perlu disalin juga: docker/db-init.sql (dipakai postgres saat inisialisasi).
+
+services:
+  php:
+    image: adlab/shetcode:latest
+    restart: unless-stopped
+    ports:
+      - "8055:80"
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      DATABASE_URL: "postgresql://app:app@database:5432/app"
+      REDIS_URL: "redis://redis:6379"
+      APP_ENV: "prod"
+      APP_DEBUG: "0"
+      PHP_FPM_PM: "dynamic"
+      PHP_FPM_PM_MAX_CHILDREN: "10"
+      PHP_FPM_PM_START_SERVERS: "2"
+      PHP_FPM_PM_MIN_SPARE_SERVERS: "1"
+      PHP_FPM_PM_MAX_SPARE_SERVERS: "4"
+      PHP_FPM_PM_MAX_REQUESTS: "500"
+    cap_drop: [ALL]
+    cap_add: [SYS_CHROOT, SETUID, SETGID, CHOWN, DAC_OVERRIDE, FOWNER]
+    security_opt:
+      - seccomp:unconfined
+      - apparmor:unconfined
+      - no-new-privileges:true
+    volumes:
+      - submissions_data:/var/www/html/public/submissions
+    mem_limit: 700m
+
+  database:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: app
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD", "pg_isready", "-d", "app", "-U", "postgres"]
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    volumes:
+      - database_data:/var/lib/postgresql/data:rw
+      - ./shetcode-db-init.sql:/docker-entrypoint-initdb.d/10-app-user.sql:ro
+    mem_limit: 400m
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: >
+      redis-server
+      --maxmemory 64mb
+      --maxmemory-policy allkeys-lru
+      --save 60 1000
+      --appendonly yes
+      --appendfsync everysec
+    volumes:
+      - redis_data:/data
+    mem_limit: 120m
+
+volumes:
+  database_data:
+  redis_data:
+  submissions_data:

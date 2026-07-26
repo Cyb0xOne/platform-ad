@@ -1,0 +1,45 @@
+# ForcAD config — FASE 0 (bukti engine hidup, belum pakai VM)
+#
+# Tujuan fase ini: buktikan engine ter-build, tick jalan, checker dieksekusi,
+# dan scoreboard menampilkan data untuk 2 tim. Vulnbox masih container example
+# bawaan ForcAD (team1-svc / team2-svc), BELUM VM.
+#
+# Fase 1 nanti: ganti `teams[].ip` jadi IP VM, dan `tasks[]` jadi adapter kita.
+#
+# Dipasang ke server: ~/adlab/forcad/config.yml
+# Jalankan dari ~/adlab/forcad dengan venv python 3.11:
+#   .venv/bin/python control.py setup && .venv/bin/python control.py start --fast
+
+game:
+  mode: classic
+  timezone: Asia/Jakarta
+  start_time: 2026-07-26 00:00:00
+
+  # round_time >= 4x checker_timeout (3 aksi per ronde: check, put, get)
+  round_time: 30
+  flag_lifetime: 5
+
+  default_score: 2500
+  game_hardness: 10.0
+  inflation: true
+
+  checkers_path: /checkers/
+  env_path: /checkers/bin/
+
+tasks:
+  # checker example bawaan ForcAD, disalin ke checkers/test_service/
+  # checker_type kosong = tanpa tag pfr/nfr → stdout PUT masuk private_flag_data
+  # (tidak tampil di scoreboard), lalu dikirim balik sebagai flag_id saat GET.
+  - name: example
+    checker: test_service/checker.py
+    checker_type: ''
+    checker_timeout: 5
+    puts: 1
+    gets: 1
+    places: 3
+
+teams:
+  - name: "Team 1"
+    ip: team1-svc
+  - name: "Team 2"
+    ip: team2-svc
