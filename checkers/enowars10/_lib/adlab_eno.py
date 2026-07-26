@@ -67,10 +67,17 @@ class LineClient:
         except OSError: pass
 
 def status_for(exc):
-    if isinstance(exc, (ConnectionError, TimeoutError, OSError,
+    # koneksi/timeout dulu — genuine DOWN (bukan ValueError, jadi aman di atas)
+    if isinstance(exc, (ConnectionError, TimeoutError,
                         requests.exceptions.ConnectionError,
                         requests.exceptions.Timeout)):
         return Status.DOWN
-    if isinstance(exc, (AssertionError, KeyError, ValueError, IndexError)):
+    # service hidup tapi salah -> MUMBLE. requests.JSONDecodeError IS-A ValueError
+    # (tertangkap di sini); requests.HTTPError bukan ValueError, jadi eksplisit.
+    if isinstance(exc, (AssertionError, KeyError, ValueError, IndexError,
+                        requests.exceptions.HTTPError)):
         return Status.MUMBLE
+    # sisa OSError = socket error asli -> DOWN
+    if isinstance(exc, OSError):
+        return Status.DOWN
     return Status.ERROR

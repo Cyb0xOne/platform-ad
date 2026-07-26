@@ -28,3 +28,36 @@ def test_status_for_assertion_is_mumble():
 def test_http_session_has_base():
     s = A.http("1.2.3.4", 8000)
     assert s.base == "http://1.2.3.4:8000"
+
+def test_status_for_requests_httperror_is_mumble():
+    import requests
+    assert A.status_for(requests.exceptions.HTTPError()) == Status.MUMBLE
+
+def test_status_for_json_decode_is_mumble():
+    # requests.JSONDecodeError adalah OSError DAN ValueError sekaligus;
+    # harus MUMBLE, bukan DOWN.
+    import requests
+    try:
+        exc = requests.exceptions.JSONDecodeError("x", "y", 0)
+    except TypeError:
+        import json
+        exc = json.JSONDecodeError("x", "y", 0)
+    assert A.status_for(exc) == Status.MUMBLE
+
+def test_status_for_requests_connection_is_down():
+    import requests
+    assert A.status_for(requests.exceptions.ConnectionError()) == Status.DOWN
+
+def test_http_leading_slash_resolves_through_base():
+    import threading, http.server
+    class H(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200); self.end_headers(); self.wfile.write(self.path.encode())
+        def log_message(self, *a): pass
+    srv = http.server.HTTPServer(("127.0.0.1", 0), H)
+    port = srv.server_address[1]
+    threading.Thread(target=srv.handle_request, daemon=True).start()
+    s = A.http("127.0.0.1", port)
+    r = s.get("/hello")
+    srv.server_close()
+    assert r.text == "/hello"
