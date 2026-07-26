@@ -268,8 +268,10 @@ class Checker(BaseChecker):
         self.cquit(Status.OK)
 
 if __name__ == "__main__":
+    # KONSTRUKSI DI LUAR try (lihat catatan di checker lain) — c harus terikat
+    # sebelum klausa except mereferensikannya. Cocok dgn upstream ForcAD.
+    c = Checker(sys.argv[2])
     try:
-        c = Checker(sys.argv[2])
         c.action(sys.argv[1], *sys.argv[3:])
     except c.get_check_finished_exception():
         cquit(Status(c.status), c.public, c.private)
@@ -395,8 +397,12 @@ class Checker(BaseChecker):
         self.cquit(Status.OK)
 
 if __name__ == "__main__":
+    # KONSTRUKSI DI LUAR try — kalau di dalam, dan Checker() raise, klausa
+    # `except c.get_check_finished_exception()` mereferensikan c yang unbound
+    # -> NameError lolos dari jaring `except Exception`. Cocok dgn upstream ForcAD.
+    c = Checker(sys.argv[2])
     try:
-        c = Checker(sys.argv[2]); c.action(sys.argv[1], *sys.argv[3:])
+        c.action(sys.argv[1], *sys.argv[3:])
     except c.get_check_finished_exception():
         cquit(Status(c.status), c.public, c.private)
     except Exception as e:
@@ -460,8 +466,12 @@ class Checker(BaseChecker):
         self.cquit(Status.OK)
 
 if __name__ == "__main__":
+    # KONSTRUKSI DI LUAR try — kalau di dalam, dan Checker() raise, klausa
+    # `except c.get_check_finished_exception()` mereferensikan c yang unbound
+    # -> NameError lolos dari jaring `except Exception`. Cocok dgn upstream ForcAD.
+    c = Checker(sys.argv[2])
     try:
-        c = Checker(sys.argv[2]); c.action(sys.argv[1], *sys.argv[3:])
+        c.action(sys.argv[1], *sys.argv[3:])
     except c.get_check_finished_exception():
         cquit(Status(c.status), c.public, c.private)
     except Exception as e:
@@ -522,8 +532,12 @@ class Checker(BaseChecker):
         self.cquit(Status.OK)
 
 if __name__ == "__main__":
+    # KONSTRUKSI DI LUAR try — kalau di dalam, dan Checker() raise, klausa
+    # `except c.get_check_finished_exception()` mereferensikan c yang unbound
+    # -> NameError lolos dari jaring `except Exception`. Cocok dgn upstream ForcAD.
+    c = Checker(sys.argv[2])
     try:
-        c = Checker(sys.argv[2]); c.action(sys.argv[1], *sys.argv[3:])
+        c.action(sys.argv[1], *sys.argv[3:])
     except c.get_check_finished_exception():
         cquit(Status(c.status), c.public, c.private)
     except Exception as e:
@@ -587,8 +601,12 @@ class Checker(BaseChecker):
         self.cquit(Status.OK)
 
 if __name__ == "__main__":
+    # KONSTRUKSI DI LUAR try — kalau di dalam, dan Checker() raise, klausa
+    # `except c.get_check_finished_exception()` mereferensikan c yang unbound
+    # -> NameError lolos dari jaring `except Exception`. Cocok dgn upstream ForcAD.
+    c = Checker(sys.argv[2])
     try:
-        c = Checker(sys.argv[2]); c.action(sys.argv[1], *sys.argv[3:])
+        c.action(sys.argv[1], *sys.argv[3:])
     except c.get_check_finished_exception():
         cquit(Status(c.status), c.public, c.private)
     except Exception as e:
@@ -648,8 +666,12 @@ class Checker(BaseChecker):
         self.cquit(Status.OK)
 
 if __name__ == "__main__":
+    # KONSTRUKSI DI LUAR try — kalau di dalam, dan Checker() raise, klausa
+    # `except c.get_check_finished_exception()` mereferensikan c yang unbound
+    # -> NameError lolos dari jaring `except Exception`. Cocok dgn upstream ForcAD.
+    c = Checker(sys.argv[2])
     try:
-        c = Checker(sys.argv[2]); c.action(sys.argv[1], *sys.argv[3:])
+        c.action(sys.argv[1], *sys.argv[3:])
     except c.get_check_finished_exception():
         cquit(Status(c.status), c.public, c.private)
     except Exception as e:
@@ -708,8 +730,12 @@ class Checker(BaseChecker):
         self.cquit(Status.OK)
 
 if __name__ == "__main__":
+    # KONSTRUKSI DI LUAR try — kalau di dalam, dan Checker() raise, klausa
+    # `except c.get_check_finished_exception()` mereferensikan c yang unbound
+    # -> NameError lolos dari jaring `except Exception`. Cocok dgn upstream ForcAD.
+    c = Checker(sys.argv[2])
     try:
-        c = Checker(sys.argv[2]); c.action(sys.argv[1], *sys.argv[3:])
+        c.action(sys.argv[1], *sys.argv[3:])
     except c.get_check_finished_exception():
         cquit(Status(c.status), c.public, c.private)
     except Exception as e:
@@ -775,8 +801,12 @@ class Checker(BaseChecker):
         return (vids[0].decode() if vids else None, nids[0].decode() if nids else "0")
 
 if __name__ == "__main__":
+    # KONSTRUKSI DI LUAR try — kalau di dalam, dan Checker() raise, klausa
+    # `except c.get_check_finished_exception()` mereferensikan c yang unbound
+    # -> NameError lolos dari jaring `except Exception`. Cocok dgn upstream ForcAD.
+    c = Checker(sys.argv[2])
     try:
-        c = Checker(sys.argv[2]); c.action(sys.argv[1], *sys.argv[3:])
+        c.action(sys.argv[1], *sys.argv[3:])
     except c.get_check_finished_exception():
         cquit(Status(c.status), c.public, c.private)
     except Exception as e:
@@ -851,8 +881,12 @@ class Checker(BaseChecker):
         self.cquit(Status.OK)
 
 if __name__ == "__main__":
+    # KONSTRUKSI DI LUAR try — kalau di dalam, dan Checker() raise, klausa
+    # `except c.get_check_finished_exception()` mereferensikan c yang unbound
+    # -> NameError lolos dari jaring `except Exception`. Cocok dgn upstream ForcAD.
+    c = Checker(sys.argv[2])
     try:
-        c = Checker(sys.argv[2]); c.action(sys.argv[1], *sys.argv[3:])
+        c.action(sys.argv[1], *sys.argv[3:])
     except c.get_check_finished_exception():
         cquit(Status(c.status), c.public, c.private)
     except Exception as e:
