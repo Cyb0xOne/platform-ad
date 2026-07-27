@@ -21,8 +21,9 @@
 #   belum ada) yang menaruh SEMUA service pada compose file ke network
 #   `forcad_default` (external) SEKALIGUS mempertahankan network `default`
 #   proyek (supaya service multi-container tetap bisa saling bicara secara
-#   internal — mis. app + db). Kalau override sudah ada (mis. sudah
-#   disesuaikan manual untuk suatu service), skrip TIDAK menimpanya.
+#   internal — mis. app + db). Override diregenerasi ULANG tiap run dari daftar
+#   service otoritatif (override lama dibuang dulu) — TIDAK lagi "idempoten diam",
+#   karena justru itu yang dulu membuat file `services:` null bertahan permanen.
 #
 #   Setelah "up", skrip mencetak IP tiap container pada `forcad_default` —
 #   itulah IP yang dipakai untuk argumen <svc-ip> checker, BUKAN IP host,
@@ -58,23 +59,35 @@ if [ "$ACT" = "down" ]; then
   exit 0
 fi
 
-# --- tempel ke forcad_default (idempoten — tak menimpa override yang ada) ---
+# --- tempel semua service ke network forcad_default ---
+# BUG LAMA (Task 5): override ditulis HANYA kalau belum ada. Kalau
+# `docker compose config --services` sempat kosong di run pertama, file ditulis
+# dengan `services:` null; karena file lalu sudah ada, ia tak pernah diperbaiki
+# dan semua panggilan compose sesudahnya gagal. FIX: buang override lama dulu
+# (agar tak mencemari query maupun bertahan kalau rusak), ambil daftar service,
+# lalu regenerasi HANYA bila daftar itu tak kosong. Kosong = compose tak
+# resolvable -> gagal keras dgn pesan jelas, JANGAN tulis file rusak.
 OVERRIDE="docker-compose.override.yml"
-if [ ! -f "$OVERRIDE" ]; then
-  {
-    echo "services:"
-    for s in $(docker compose config --services); do
-      echo "  $s:"
-      echo "    networks: [default, forcad_default]"
-    done
-    echo "networks:"
-    echo "  default: {}"
-    echo "  forcad_default:"
-    echo "    external: true"
-  } > "$OVERRIDE"
-  echo "dibuat $OVERRIDE:"
-  cat "$OVERRIDE"
+rm -f "$OVERRIDE"
+SERVICES="$(docker compose config --services 2>/dev/null || true)"
+if [ -z "$(printf '%s' "$SERVICES" | tr -d '[:space:]')" ]; then
+  echo "FATAL: 'docker compose config --services' kosong di $WORK —" >&2
+  echo "       compose file tak resolvable (cek docker-compose.yml). Override tak ditulis." >&2
+  exit 1
 fi
+{
+  echo "services:"
+  for s in $SERVICES; do
+    echo "  $s:"
+    echo "    networks: [default, forcad_default]"
+  done
+  echo "networks:"
+  echo "  default: {}"
+  echo "  forcad_default:"
+  echo "    external: true"
+} > "$OVERRIDE"
+echo "ditulis $OVERRIDE:"
+cat "$OVERRIDE"
 
 docker compose up -d --build
 docker compose ps
