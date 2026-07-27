@@ -235,7 +235,7 @@ class Checker(BaseChecker):
 
             typ, fdat = im.fetch(ids[-1], "(RFC822)")
             self.assert_eq(typ, "OK", "FETCH pesan gagal", Status.MUMBLE)
-            body = fdat[0][1] or b""
+            body = fdat[0][1] if fdat[0] else b""
             # Round-trip genuine: flag diperiksa ADA di badan pesan yg BALIK
             # dari server utk pesan spesifik ini (bukan sesuatu yg sesi ini
             # sendiri kirim).
