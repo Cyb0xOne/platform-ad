@@ -1,0 +1,127 @@
+# ForcAD config — ENOWARS10 (9 checker checklib-native, branch enowars10-checkers)
+#
+# Mendaftarkan 9 checker Task 2–10 sebagai permainan A/D. Task 11 (mediocre) &
+# 12 (enomoloch) BELUM masuk — spike, lihat docs/HANDOFF-enowars10-checkers.md.
+#
+# ┌ BATAS MENGIKAT — jangan ubah tanpa hitung ulang (sumber: handoff §6) ─────────
+# │ 1) Reaper service terketat ~12 mnt: d3pl0y/flagdrive/overeats/inbox menghapus
+# │    data ~720 s; leet-date 15 mnt. Flag lebih tua dari itu HILANG dari service,
+# │    jadi GET flag lama -> CORRUPT walau service sehat. Maka:
+# │        round_time × flag_lifetime  ≤  ~720 s
+# │ 2) Kontrak ForcAD: round_time ≥ 4 × checker_timeout terbesar.
+# │    Terbesar = overeats 30 s  ->  round_time ≥ 120 s.
+# │ => 120 × 5 = 600 s  (≤720 ✓  dan  120 ≥ 4×30 ✓).
+# │    config.fase1.yml pakai 180×5 = 900 s — MELANGGAR batas (1); JANGAN disalin.
+# └──────────────────────────────────────────────────────────────────────────────
+#
+# Pasang: salin ke ~/adlab/forcad/config.yml lalu reset+clean+setup+start
+# (lihat deploy/fase05-cutover.sh; docker_volumes milik root perlu sudo rm).
+#
+# RAM (handoff §6): 9 service serentak BELUM pernah diuji di server (~6.6 Gi bebas).
+# overeats (5 container) & leet-date (6 container) paling berat — kalau tak muat,
+# sebar ke dua VM tim atau komentari dua entri itu dulu.
+
+game:
+  mode: classic
+  timezone: Asia/Jakarta
+  start_time: 2026-07-27 00:00:00   # sesuaikan ke waktu mulai permainan sebenarnya
+
+  round_time: 120        # ≥ 4×30 (overeats). Menaikkan ini WAJIB turunkan flag_lifetime.
+  flag_lifetime: 5       # 120×5 = 600 s < 720 s reaper (flag_lifetime 6 = 720, batas mentok).
+
+  default_score: 2500
+  game_hardness: 10.0
+  inflation: true
+
+  checkers_path: /checkers/
+  env_path: /checkers/bin/
+
+tasks:
+  # Kontrol infra (checker bawaan ForcAD). Kalau ini UP tapi checker eno DOWN,
+  # masalahnya di service/checker, bukan engine/jaringan. Buang setelah roster
+  # eno terbukti stabil.
+  - name: example
+    checker: test_service/checker.py
+    checker_type: ''
+    checker_timeout: 10
+    puts: 1
+    gets: 1
+    places: 3
+
+  - name: greple            # :7777 pastebin (Zig)
+    checker: eno10_greple/checker.py
+    checker_type: ''
+    checker_timeout: 20
+    puts: 1
+    gets: 1
+    places: 1
+
+  - name: d3pl0y            # :2553 object store (Hare) — reaper ~12 mnt
+    checker: eno10_d3pl0y/checker.py
+    checker_type: ''
+    checker_timeout: 20
+    puts: 1
+    gets: 1
+    places: 1
+
+  - name: flagdrive         # :4859 file store (Rust) — reaper ~12 mnt
+    checker: eno10_flagdrive/checker.py
+    checker_type: ''
+    checker_timeout: 20
+    puts: 1
+    gets: 1
+    places: 1
+
+  - name: signmemaybe       # :1984 contracts (.NET)
+    checker: eno10_signmemaybe/checker.py
+    checker_type: ''
+    checker_timeout: 25
+    puts: 1
+    gets: 1
+    places: 1
+
+  - name: overeats          # :5432 order note (Python, 5 container) — reaper 12 mnt; terberat RAM
+    checker: eno10_overeats/checker.py
+    checker_type: ''
+    checker_timeout: 30
+    puts: 1
+    gets: 1
+    places: 1
+
+  - name: funsplash         # :1337 foto/koleksi (Gleam)
+    checker: eno10_funsplash/checker.py
+    checker_type: ''
+    checker_timeout: 20
+    puts: 1
+    gets: 1
+    places: 1
+
+  - name: leet-date         # :6789 profil bio (Go, 6 container) — dir celery = eno10_leet_date
+    checker: eno10_leet_date/checker.py
+    checker_type: ''
+    checker_timeout: 15
+    puts: 1
+    gets: 1
+    places: 1
+
+  - name: superregister     # :6767 CLI TCP (LineClient) — reaper berbasis kapasitas, bukan waktu
+    checker: eno10_superregister/checker.py
+    checker_type: ''
+    checker_timeout: 20
+    puts: 1
+    gets: 1
+    places: 1
+
+  - name: inbox             # :4321 SMTP / :1234 IMAP (Go) — reaper ~12-15 mnt
+    checker: eno10_inbox/checker.py
+    checker_type: ''
+    checker_timeout: 25
+    puts: 1
+    gets: 1
+    places: 1
+
+teams:
+  - name: "Cyb0x1 Athena"
+    ip: 10.13.37.11
+  - name: "Cyb0x1 Ares"
+    ip: 10.13.37.12
