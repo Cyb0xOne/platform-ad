@@ -1,0 +1,78 @@
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -13,7 +13,7 @@
+ # Install Rust target for Wasm
+ RUN rustup target add wasm32-unknown-unknown
+ 
+-# Install bin-installed tools for faster tool installs 
++# Install bin-installed tools for faster tool installs
+ RUN curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+ RUN cargo binstall -y trunk@0.21.14 cargo-chef@0.1.77 wasm-bindgen-cli@0.2.121
+ 
+@@ -37,9 +37,12 @@
+ 
+ # Cook recipe file
+ COPY --from=chef /ctf/recipe.json /ctf/recipe.json
+-RUN --mount=type=cache,id=cargo-registry-frontend,target=/usr/local/cargo/registry \
+-    --mount=type=cache,id=cargo-target-frontend,target=/ctf/service/target \
+-    cargo chef cook --release --package flagdrive-frontend --target wasm32-unknown-unknown --recipe-path /ctf/recipe.json > /ctf/chef.log 2>&1 \
++# NB (server copy only, lihat catatan Task 2 di task-2-report.md): --mount=type=cache butuh
++# BuildKit murni; docker CLI di server ini tak punya plugin buildx dan `docker compose build`
++# fallback ke classic builder (bukan fatal), tapi flag --mount tetap gagal di classic builder.
++# Cache mount murni optimisasi rebuild, bukan kebutuhan fungsional -> dihapus di sini saja
++# (source laptop tidak disentuh).
++RUN cargo chef cook --release --package flagdrive-frontend --target wasm32-unknown-unknown --recipe-path /ctf/recipe.json > /ctf/chef.log 2>&1 \
+     || (cat /ctf/chef.log && exit 1)
+ 
+ 
+@@ -50,9 +53,7 @@
+ 
+ # Cook recipe file
+ COPY --from=chef /ctf/recipe.json /ctf/recipe.json
+-RUN --mount=type=cache,id=cargo-registry-backend,target=/usr/local/cargo/registry \
+-    --mount=type=cache,id=cargo-target-backend,target=/ctf/service/target \
+-    cargo chef cook --release --package flagdrive-backend --recipe-path /ctf/recipe.json > /ctf/chef.log 2>&1 \
++RUN cargo chef cook --release --package flagdrive-backend --recipe-path /ctf/recipe.json > /ctf/chef.log 2>&1 \
+     || (cat /ctf/chef.log && exit 1)
+ 
+ 
+@@ -66,9 +67,7 @@
+ COPY backend/Cargo.toml ./backend/
+ COPY shared ./shared
+ COPY frontend ./frontend
+-RUN --mount=type=cache,id=cargo-registry-frontend,target=/usr/local/cargo/registry \
+-    --mount=type=cache,id=cargo-target-frontend,target=/ctf/service/target \
+-    cd frontend && trunk build --release --quiet && cd ..
++RUN cd frontend && trunk build --release --quiet && cd ..
+ 
+ 
+ # --- BUILDER-BACKEND ---
+@@ -82,9 +81,7 @@
+ COPY frontend/Cargo.toml ./frontend/
+ COPY shared ./shared
+ COPY backend ./backend
+-RUN --mount=type=cache,id=cargo-registry-backend,target=/usr/local/cargo/registry \
+-    --mount=type=cache,id=cargo-target-backend,target=/ctf/service/target \
+-    cd backend && cargo build --release --quiet && \
++RUN cd backend && cargo build --release --quiet && \
+     cp /ctf/service/target/release/flagdrive-backend /ctf/service/flagdrive-backend
+ 
+ 
+@@ -100,4 +97,4 @@
+ COPY --from=builder-backend /ctf/service/flagdrive-backend /ctf/service/flagdrive
+ COPY --from=database /ctf/data /ctf/data
+ 
+-ENTRYPOINT ["/ctf/service/flagdrive", "--dist", "/ctf/service/dist", "--database", "/ctf/data/flagdrive.db", "--addr", "0.0.0.0:4859"]
+\ No newline at end of file
++ENTRYPOINT ["/ctf/service/flagdrive", "--dist", "/ctf/service/dist", "--database", "/ctf/data/flagdrive.db", "--addr", "0.0.0.0:4859"]
+--- a/frontend/index.html
++++ b/frontend/index.html
+@@ -5,7 +5,7 @@
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>FlagDrive</title>
+-  <link data-trunk rel="tailwind-css" href="style/tailwind.css" />
++  <link data-trunk rel="tailwind-css" href="src/styles/tailwind.css" />
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">

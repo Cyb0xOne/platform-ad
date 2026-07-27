@@ -1,0 +1,44 @@
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -6,7 +6,7 @@
+ COPY build.zig .
+ COPY build.zig.zon .
+ COPY src src
+-RUN --mount=type=cache,target=.zig-cache --mount=type=cache,target=/root/.cache/zig zig build -freference-trace=100
++RUN zig build -freference-trace=100
+ 
+ FROM alpine:3.23
+ RUN apk add --no-cache py3-aiohttp multirun
+--- a/src/utils.zig
++++ b/src/utils.zig
+@@ -16,7 +16,7 @@
+         error.FileNotFound => {
+             var generated: [64]u8 = undefined;
+             std.crypto.random.bytes(generated[0..]);
+-            try std.fs.cwd().writeFile(secret_path, &generated);
++            try std.fs.cwd().writeFile(.{ .sub_path = secret_path, .data = &generated });
+             return alloc.dupe(u8, &generated);
+         },
+         else => |leftover_err| return leftover_err,
+@@ -26,7 +26,7 @@
+     if (std.mem.eql(u8, secret_data, "change me")) {
+         var generated: [64]u8 = undefined;
+         std.crypto.random.bytes(generated[0..]);
+-        try std.fs.cwd().writeFile(secret_path, &generated);
++        try std.fs.cwd().writeFile(.{ .sub_path = secret_path, .data = &generated });
+         const secret = try alloc.dupe(u8, &generated);
+         cached_secret = secret;
+         return secret;
+@@ -51,9 +51,9 @@
+ }
+ 
+ pub fn randomHash() !Hash {
+-    var hash: Hash = undefined;
+-    std.crypto.random.bytes(hash[0..]);
+-    return hash;
++    var h: Hash = undefined;
++    std.crypto.random.bytes(h[0..]);
++    return h;
+ }
+ 
+ pub fn hexToBytes(n: comptime_int, data: []const u8) ![n]u8 {
