@@ -3,219 +3,2274 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>AD Dashboard — Cyb0x1</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%233987e5'/%3E%3Ctext x='8' y='12' font-size='10' text-anchor='middle' fill='white' font-family='sans-serif'%3EA%3C/text%3E%3C/svg%3E" />
+<meta name="color-scheme" content="dark" />
+<title>Cyb0x1 · War Room</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='2' fill='%2308090a'/%3E%3Cpath d='M3 4h3v2H5v4h1v2H3zm5 0h5v2h-3v1h2v2h-2v1h3v2H8z' fill='%233df2e0'/%3E%3C/svg%3E" />
 <style>
-  /* Tema gelap tunggal: dashboard ops sengaja berkomitmen ke satu tampilan.
-     Warna dari palet dataviz tervalidasi (slot kategorikal 1-2 + status). */
   :root {
-    --plane:      #0d0d0d;
-    --surface:    #1a1a19;
-    --ink:        #ffffff;
-    --ink-2:      #c3c2b7;
-    --muted:      #898781;
-    --grid:       #2c2c2a;
-    --axis:       #383835;
-    --ring:       rgba(255,255,255,0.10);
-    --team-1:     #3987e5;  /* biru  */
-    --team-2:     #d95926;  /* oranye */
-    --up:         #0ca30c;  /* good     */
-    --down:       #d03b3b;  /* critical */
-    --mumble:     #fab219;  /* warning  */
-    --error:      #ec835a;  /* serious  */
+    --plane: #08090a;
+    --surface: #101214;
+    --surface-raised: #15181b;
+    --surface-soft: #0c0e0f;
+    --ink: #f4f7f6;
+    --ink-2: #c8cfcd;
+    --muted: #929a98;
+    --grid: #272c2d;
+    --grid-soft: rgba(61, 242, 224, 0.045);
+    --ring: rgba(222, 255, 250, 0.12);
+    --ring-bright: rgba(61, 242, 224, 0.22);
+    --system: #3df2e0;
+    --team-1: #3987e5;
+    --team-2: #d95926;
+    --team-3: #a66de5;
+    --team-4: #e5c13f;
+    --team-5: #28a6a1;
+    --team-6: #d9466f;
+    --team-7: #7cad3e;
+    --team-8: #a97755;
+    --up: #0ca30c;
+    --down: #d03b3b;
+    --warning: #fab219;
+    --error: #ec835a;
+    --na: #929a98;
+    --positive: #5de86a;
+    --negative: #ff6d64;
+    --blood: #ff6d64;
+    --track: #202527;
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --shadow-panel: 0 18px 54px rgba(0, 0, 0, 0.34), inset 0 1px rgba(255, 255, 255, 0.025);
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --fs-xs: 12px;
+    --fs-sm: 14px;
+    --fs-md: 16px;
+    --fs-lg: 20px;
+    --fs-xl: 28px;
+    --fs-2xl: 44px;
+    --fs-hero: 72px;
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-move: cubic-bezier(0.77, 0, 0.175, 1);
     color-scheme: dark;
   }
+
   * { box-sizing: border-box; }
+
+  html {
+    min-width: 320px;
+    background: var(--plane);
+    -webkit-font-smoothing: antialiased;
+  }
+
   body {
-    margin: 0; background: var(--plane); color: var(--ink);
-    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    min-height: 100vh;
+    margin: 0;
+    overflow-x: hidden;
+    background:
+      radial-gradient(circle at 12% -10%, rgba(57, 135, 229, 0.11), transparent 28%),
+      radial-gradient(circle at 88% -6%, rgba(217, 89, 38, 0.09), transparent 26%),
+      linear-gradient(var(--grid-soft) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-soft) 1px, transparent 1px),
+      var(--plane);
+    background-size: auto, auto, 32px 32px, 32px 32px, auto;
+    color: var(--ink);
+    font: var(--fs-sm)/1.45 var(--font-mono);
   }
-  header {
-    display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
-    padding: 18px 24px; border-bottom: 1px solid var(--ring);
+
+  body::after {
+    position: fixed;
+    z-index: 20;
+    inset: 0;
+    pointer-events: none;
+    content: "";
+    background:
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 4px),
+      radial-gradient(ellipse at center, transparent 58%, rgba(0,0,0,0.34) 100%);
   }
-  header h1 { font-size: 18px; margin: 0; letter-spacing: .3px; }
-  header .sub { color: var(--muted); font-size: 13px; }
-  .pill {
-    margin-left: auto; display: flex; gap: 18px; align-items: baseline;
+
+  button { font: inherit; }
+
+  .num,
+  [data-counter-key],
+  .round-value,
+  .matrix-score,
+  .attack-time,
+  .attack-round {
     font-variant-numeric: tabular-nums;
   }
-  .pill b { font-size: 20px; }
-  .pill span { color: var(--muted); font-size: 12px; display: block; }
-  main { padding: 24px; max-width: 1100px; margin: 0 auto; display: grid; gap: 24px; }
-  .card {
-    background: var(--surface); border: 1px solid var(--ring);
-    border-radius: 10px; padding: 18px 20px;
+
+  .topbar {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: minmax(250px, 1fr) auto minmax(240px, 0.9fr);
+    align-items: center;
+    min-height: 68px;
+    padding: var(--space-3) clamp(var(--space-4), 2vw, var(--space-6));
+    border-bottom: 1px solid var(--ring-bright);
+    background: rgba(8, 9, 10, 0.92);
+    box-shadow: 0 8px 36px rgba(0, 0, 0, 0.4);
   }
-  .card h2 { margin: 0 0 14px; font-size: 13px; font-weight: 600;
-             text-transform: uppercase; letter-spacing: .6px; color: var(--ink-2); }
-  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--grid); }
-  th { color: var(--muted); font-weight: 600; font-size: 12px; }
-  td.num, th.num { text-align: right; }
-  tr:last-child td { border-bottom: none; }
-  .rank { color: var(--muted); width: 24px; }
-  .team-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%;
-              margin-right: 7px; vertical-align: baseline; }
-  .svc {
-    display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px;
-    border-radius: 6px; font-size: 12px; font-variant-numeric: tabular-nums;
+
+  .brand {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: var(--space-3);
+  }
+
+  .brand-mark {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 1px solid var(--ring-bright);
+    border-radius: var(--radius-sm);
+    color: var(--system);
+    box-shadow: 0 0 20px rgba(61, 242, 224, 0.08), inset 0 0 16px rgba(61, 242, 224, 0.04);
+    font-size: var(--fs-md);
+    font-weight: 900;
+  }
+
+  .brand-copy { min-width: 0; }
+
+  .brand h1 {
+    margin: 0;
+    overflow: hidden;
+    font-size: var(--fs-xl);
+    line-height: 1;
+    letter-spacing: 0.055em;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    text-wrap: balance;
+    white-space: nowrap;
+  }
+
+  .brand small {
+    display: block;
+    margin-top: var(--space-1);
+    color: var(--muted);
+    font-size: var(--fs-xs);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .round-cluster {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-5);
+  }
+
+  .round-readout {
+    color: var(--system);
+    font-weight: 800;
+    letter-spacing: 0.09em;
+    white-space: nowrap;
+  }
+
+  .round-value { font-size: var(--fs-xl); }
+
+  .live-state {
+    display: inline-flex;
+    align-items: center;
+    min-width: 74px;
+    gap: var(--space-2);
+    color: var(--muted);
+    font-size: var(--fs-xs);
+    font-weight: 800;
+    letter-spacing: 0.12em;
+  }
+
+  .live-state.running { color: var(--system); }
+  .live-state.stale { color: var(--warning); }
+
+  .live-dot {
+    display: inline-block;
+    font-size: var(--fs-xs);
+    text-shadow: 0 0 12px currentColor;
+  }
+
+  .live-state.heartbeat .live-dot { animation: heartbeat 720ms var(--ease-out); }
+
+  .round-progress {
+    display: grid;
+    min-width: 0;
+    gap: var(--space-1);
+  }
+
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+    color: var(--muted);
+    font-size: var(--fs-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .progress-track {
+    position: relative;
+    height: 7px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--track);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8);
+  }
+
+  .progress-fill {
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--system);
+    box-shadow: 0 0 12px rgba(61, 242, 224, 0.65);
+    transition: width 900ms linear;
+  }
+
+  .round-progress.indeterminate .progress-fill {
+    width: 34%;
+    animation: indeterminate 1.7s var(--ease-move) infinite;
+    opacity: 0.76;
+  }
+
+  .stale-banner {
+    position: fixed;
+    z-index: 30;
+    top: 76px;
+    right: var(--space-5);
+    display: none;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid rgba(250, 178, 25, 0.28);
+    border-radius: var(--radius-sm);
+    background: rgba(16, 18, 20, 0.94);
+    color: var(--warning);
+    box-shadow: var(--shadow-panel);
+    font-size: var(--fs-xs);
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .stale-banner.visible { display: block; }
+
+  main {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    width: min(100%, 1920px);
+    margin: 0 auto;
+    padding: clamp(var(--space-3), 1.5vw, var(--space-6));
+    gap: clamp(var(--space-3), 1.2vw, var(--space-5));
+  }
+
+  .panel {
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
     border: 1px solid var(--ring);
+    border-radius: var(--radius-md);
+    background: linear-gradient(145deg, rgba(20, 23, 25, 0.96), rgba(13, 15, 16, 0.98));
+    box-shadow: var(--shadow-panel);
   }
-  .svc .ico { font-size: 11px; }
-  .st-UP      { color: var(--up); }
-  .st-DOWN    { color: var(--down); }
-  .st-MUMBLE, .st-CORRUPT { color: var(--mumble); }
-  .st-ERROR   { color: var(--error); }
-  .st-NA      { color: var(--muted); }
-  .svcgrid { display: flex; gap: 8px; flex-wrap: wrap; }
-  .legend { display: flex; gap: 18px; margin-bottom: 10px; font-size: 12px; color: var(--ink-2); }
-  .legend i { width: 12px; height: 2px; display: inline-block; vertical-align: middle; margin-right: 6px; }
-  .att-row td:first-child { color: var(--muted); white-space: nowrap; }
-  .arrow { color: var(--muted); margin: 0 6px; }
-  svg text { fill: var(--muted); font-size: 11px; }
-  .foot { color: var(--muted); font-size: 12px; text-align: center; padding-bottom: 30px; }
-  .empty { color: var(--muted); padding: 8px 10px; }
+
+  .panel::before {
+    position: absolute;
+    top: -1px;
+    left: var(--space-4);
+    width: 64px;
+    height: 1px;
+    content: "";
+    background: var(--system);
+    box-shadow: 0 0 12px rgba(61, 242, 224, 0.58);
+  }
+
+  .panel-head {
+    display: flex;
+    min-height: 42px;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-4);
+    border-bottom: 1px solid var(--ring);
+    background: rgba(0, 0, 0, 0.15);
+  }
+
+  .panel-title {
+    margin: 0;
+    color: var(--system);
+    font-size: var(--fs-sm);
+    font-weight: 800;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+  }
+
+  .panel-meta {
+    color: var(--muted);
+    font-size: var(--fs-xs);
+    letter-spacing: 0.09em;
+    text-align: right;
+    text-transform: uppercase;
+  }
+
+  .empty {
+    display: grid;
+    min-height: 108px;
+    place-items: center;
+    padding: var(--space-5);
+    color: var(--muted);
+    font-size: var(--fs-sm);
+    letter-spacing: 0.08em;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .hero-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(330px, 100%), 1fr));
+    gap: var(--space-3);
+  }
+
+  .rank-card {
+    --team: var(--team-1);
+    position: relative;
+    display: grid;
+    min-height: 164px;
+    grid-template-columns: clamp(88px, 8vw, 136px) 1fr;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--team) 38%, transparent);
+    border-radius: var(--radius-lg);
+    background:
+      linear-gradient(110deg, color-mix(in srgb, var(--team) 12%, transparent), transparent 43%),
+      var(--surface);
+    box-shadow: 0 14px 42px rgba(0, 0, 0, 0.28), inset 0 0 42px color-mix(in srgb, var(--team) 4%, transparent);
+    width: 100%;
+    padding: 0;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition-property: transform, border-color, box-shadow;
+    transition-duration: 180ms;
+    transition-timing-function: var(--ease-out);
+  }
+
+  .rank-card.has-team-logo::before {
+    position: absolute;
+    z-index: 0;
+    inset: 8% 2% 8% auto;
+    width: 42%;
+    pointer-events: none;
+    content: "";
+    background-image: var(--team-logo);
+    background-repeat: no-repeat;
+    background-position: right center;
+    background-size: contain;
+    opacity: 0.13;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.5) 30%, #000 58%, #000 100%);
+    mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.5) 30%, #000 58%, #000 100%);
+  }
+
+  .rank-card.team-logo-athena { --team-logo: url('/cyb0x1_athena.webp'); }
+  .rank-card.team-logo-ares { --team-logo: url('/cyb0x1_ares.webp'); }
+
+  .rank-card > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .rank-card::after {
+    position: absolute;
+    z-index: 2;
+    inset: auto 0 0;
+    height: 2px;
+    pointer-events: none;
+    content: "";
+    background: linear-gradient(90deg, var(--team), transparent 70%);
+    box-shadow: 0 0 18px var(--team);
+  }
+
+  .rank-block {
+    display: grid;
+    place-content: center;
+    border-right: 1px solid color-mix(in srgb, var(--team) 28%, transparent);
+    background: color-mix(in srgb, var(--team) 5%, transparent);
+    text-align: center;
+  }
+
+  .rank-label {
+    color: var(--muted);
+    font-size: var(--fs-xs);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .rank-number {
+    color: var(--team);
+    font-size: var(--fs-hero);
+    font-weight: 900;
+    line-height: 0.86;
+    letter-spacing: -0.035em;
+    text-shadow: 0 0 32px color-mix(in srgb, var(--team) 42%, transparent);
+  }
+
+  .rank-content {
+    display: grid;
+    align-content: space-between;
+    min-width: 0;
+    padding: var(--space-4) var(--space-5);
+    gap: var(--space-3);
+  }
+
+  .team-heading {
+    display: flex;
+    min-width: 0;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  .team-name-wrap { min-width: 0; }
+
+  .team-name {
+    margin: 0;
+    overflow: hidden;
+    font-size: var(--fs-2xl);
+    line-height: 1;
+    letter-spacing: 0.025em;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    text-wrap: balance;
+    white-space: nowrap;
+  }
+
+  .team-id {
+    display: block;
+    margin-top: var(--space-1);
+    color: var(--muted);
+    font-size: var(--fs-xs);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .own-tag {
+    flex: 0 0 auto;
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid color-mix(in srgb, var(--team) 45%, transparent);
+    border-radius: var(--radius-sm);
+    color: var(--team);
+    font-size: var(--fs-xs);
+    font-weight: 800;
+    letter-spacing: 0.12em;
+  }
+
+  .total-score {
+    color: var(--ink);
+    font-size: var(--fs-2xl);
+    font-weight: 900;
+    line-height: 0.9;
+    letter-spacing: -0.055em;
+    text-shadow: 0 0 24px color-mix(in srgb, var(--team) 24%, transparent);
+  }
+
+  .total-label {
+    display: block;
+    margin-top: var(--space-1);
+    color: var(--muted);
+    font-size: var(--fs-xs);
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+  }
+
+  .hero-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(58px, 1fr));
+    gap: var(--space-2);
+  }
+
+  .hero-stat {
+    min-width: 0;
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--ring);
+  }
+
+  .hero-stat b {
+    display: block;
+    overflow: hidden;
+    font-size: var(--fs-lg);
+    line-height: 1.1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .hero-stat span {
+    color: var(--muted);
+    font-size: var(--fs-xs);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .hero-stat.positive b { color: var(--positive); }
+  .hero-stat.negative b { color: var(--negative); }
+
+  .matrix-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-color: var(--grid) var(--surface-soft);
+    scrollbar-width: thin;
+  }
+
+  .service-matrix {
+    --service-count: 1;
+    display: grid;
+    min-width: max-content;
+    grid-template-columns: minmax(216px, 1.45fr) repeat(var(--service-count), minmax(112px, 1fr));
+    width: 100%;
+  }
+
+  .matrix-row { display: contents; }
+
+  .matrix-corner,
+  .matrix-header,
+  .matrix-team,
+  .matrix-cell {
+    min-width: 0;
+    border-right: 1px solid var(--ring);
+    border-bottom: 1px solid var(--ring);
+  }
+
+  button.matrix-header,
+  button.matrix-team,
+  button.matrix-cell {
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .matrix-corner,
+  .matrix-header {
+    min-height: 76px;
+    background: rgba(0, 0, 0, 0.18);
+  }
+
+  .matrix-corner {
+    display: grid;
+    align-content: center;
+    padding: var(--space-3) var(--space-4);
+    color: var(--muted);
+    font-size: var(--fs-xs);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .matrix-header {
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    padding: var(--space-2);
+    gap: var(--space-1);
+    text-align: center;
+  }
+
+  .service-name {
+    display: block;
+    width: 100%;
+    overflow: hidden;
+    color: var(--ink-2);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    letter-spacing: 0.025em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .fb-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: 1px 5px;
+    border: 1px solid rgba(208, 59, 59, 0.38);
+    border-radius: var(--radius-sm);
+    color: var(--blood);
+    font-size: var(--fs-xs);
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .fb-spacer { height: var(--fs-xs); }
+
+  .matrix-team {
+    --team: var(--team-1);
+    display: flex;
+    min-height: 72px;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-4);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--team) 9%, transparent), transparent 75%);
+    text-align: left;
+  }
+
+  .matrix-rank {
+    color: var(--team);
+    font-size: var(--fs-xl);
+    line-height: 1;
+  }
+
+  .matrix-team-name {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--ink);
+    font-size: var(--fs-sm);
+    letter-spacing: 0.025em;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .matrix-cell {
+    position: relative;
+    display: grid;
+    min-height: 72px;
+    place-content: center;
+    gap: 2px;
+    padding: var(--space-2);
+    background: rgba(255, 255, 255, 0.012);
+    text-align: center;
+  }
+
+  .matrix-cell:hover { background: rgba(255, 255, 255, 0.035); }
+
+  .status-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    font-size: var(--fs-xs);
+    font-weight: 900;
+    letter-spacing: 0.07em;
+  }
+
+  .status-icon {
+    font-size: var(--fs-sm);
+    line-height: 1;
+    text-shadow: 0 0 9px currentColor;
+  }
+
+  .matrix-score {
+    color: var(--ink);
+    font-size: var(--fs-md);
+    line-height: 1.1;
+  }
+
+  .st-UP { color: var(--up); }
+  .st-DOWN { color: var(--down); }
+  .st-MUMBLE, .st-CORRUPT { color: var(--warning); }
+  .st-ERROR { color: var(--error); }
+  .st-NA { color: var(--na); }
+
+  .matrix-cell.status-changed .status-icon { animation: status-burst 1.35s var(--ease-out); }
+
+  .matrix-legend {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-4);
+    border-top: 1px solid rgba(255, 255, 255, 0.025);
+    color: var(--muted);
+    font-size: var(--fs-xs);
+    letter-spacing: 0.07em;
+  }
+
+  .matrix-legend span { white-space: nowrap; }
+
+  .bottom-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(360px, 0.82fr);
+    gap: clamp(var(--space-3), 1.2vw, var(--space-5));
+  }
+
+  .timeline-panel,
+  .feed-panel { min-height: 342px; }
+
+  .timeline-body { padding: var(--space-2) var(--space-3) var(--space-3); }
+
+  .timeline-legend {
+    display: flex;
+    min-height: 28px;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    padding: 0 var(--space-1);
+    color: var(--ink-2);
+    font-size: var(--fs-xs);
+  }
+
+  .legend-team {
+    --team: var(--team-1);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .legend-swatch {
+    width: 18px;
+    height: 3px;
+    background: var(--team);
+    box-shadow: 0 0 9px color-mix(in srgb, var(--team) 55%, transparent);
+  }
+
+  .chart { min-height: 274px; }
+  .chart svg { display: block; width: 100%; height: auto; }
+  .chart text { font-family: var(--font-mono); }
+  .chart .axis-label { fill: var(--ink-2); font-size: var(--fs-xs); }
+  .chart .end-label { font-size: var(--fs-sm); font-weight: 800; }
+
+  .feed-head { align-items: stretch; padding-right: var(--space-2); }
+
+  .feed-heading-wrap {
+    display: grid;
+    align-content: center;
+    gap: 1px;
+  }
+
+  .feed-target {
+    max-width: 320px;
+    overflow: hidden;
+    color: var(--muted);
+    font-size: var(--fs-xs);
+    letter-spacing: 0.06em;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .feed-toggle {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid var(--ring);
+    border-radius: 6px;
+    background: var(--surface-soft);
+  }
+
+  .feed-toggle button {
+    min-height: 34px;
+    padding: var(--space-2) var(--space-3);
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: var(--fs-xs);
+    font-weight: 900;
+    letter-spacing: 0.09em;
+    transition-property: color, background-color, transform;
+    transition-duration: 150ms;
+    transition-timing-function: var(--ease-out);
+  }
+
+  .feed-toggle button[aria-pressed="true"] {
+    background: rgba(61, 242, 224, 0.09);
+    color: var(--system);
+    box-shadow: inset 0 0 0 1px rgba(61, 242, 224, 0.15);
+  }
+
+  .feed-toggle button:active { transform: scale(0.96); }
+
+  .attack-feed {
+    height: 280px;
+    overflow-y: auto;
+    scrollbar-color: var(--grid) var(--surface-soft);
+    scrollbar-width: thin;
+  }
+
+  .attack-row {
+    --attacker-color: var(--ink-2);
+    position: relative;
+    display: grid;
+    grid-template-columns: 68px minmax(92px, 1fr) 20px minmax(92px, 1fr) minmax(76px, 0.8fr);
+    align-items: center;
+    height: 56px;
+    min-height: 56px;
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid var(--ring);
+    gap: var(--space-2);
+    font-size: var(--fs-sm);
+  }
+
+  .attack-row::before {
+    position: absolute;
+    top: 12px;
+    bottom: 12px;
+    left: 0;
+    width: 2px;
+    content: "";
+    background: var(--attacker-color);
+    box-shadow: 0 0 10px var(--attacker-color);
+  }
+
+  .attack-row.is-new { animation: attack-enter 520ms var(--ease-out) both; }
+
+  .attack-row.is-new::after {
+    position: absolute;
+    top: 5px;
+    right: 7px;
+    content: "BARU";
+    color: var(--system);
+    font-size: var(--fs-xs);
+    letter-spacing: 0.08em;
+  }
+
+  .attack-time { color: var(--muted); }
+
+  .combatant {
+    overflow: hidden;
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .attack-arrow {
+    color: var(--muted);
+    font-size: var(--fs-sm);
+    text-align: center;
+  }
+
+  .attack-service {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--ink-2);
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .attack-round {
+    display: block;
+    color: var(--muted);
+    font-size: var(--fs-xs);
+  }
+
+  footer {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    padding: 0 var(--space-5) var(--space-5);
+    color: var(--muted);
+    font-size: var(--fs-xs);
+    letter-spacing: 0.11em;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .rank-card:focus-visible,
+  .matrix-header:focus-visible,
+  .matrix-team:focus-visible,
+  .matrix-cell:focus-visible,
+  .modal-close:focus-visible,
+  .copy-button:focus-visible {
+    z-index: 2;
+    outline: 2px solid var(--system);
+    outline-offset: -3px;
+  }
+
+  .modal-close:focus,
+  .copy-button:focus {
+    outline: 2px solid var(--system);
+    outline-offset: 2px;
+  }
+
+  .modal-open { overflow: hidden; }
+
+  .modal-backdrop {
+    position: fixed;
+    z-index: 100;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: var(--space-4);
+    background: rgba(2, 3, 4, 0.82);
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    transition: opacity 180ms var(--ease-out);
+  }
+
+  .modal-backdrop[hidden] { display: none; }
+  .modal-backdrop.is-open { opacity: 1; }
+
+  .detail-dialog {
+    --accent: var(--system);
+    display: grid;
+    width: min(1120px, 100%);
+    max-height: calc(100vh - (var(--space-4) * 2));
+    grid-template-rows: auto minmax(0, 1fr);
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--accent) 48%, var(--ring));
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    box-shadow: 0 28px 90px rgba(0, 0, 0, 0.72), 0 0 42px color-mix(in srgb, var(--accent) 12%, transparent);
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+    transition-property: opacity, transform;
+    transition-duration: 180ms;
+    transition-timing-function: var(--ease-out);
+  }
+
+  .modal-backdrop.is-open .detail-dialog {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  .modal-head {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    min-height: 76px;
+    padding: var(--space-3) var(--space-5);
+    border-bottom: 1px solid var(--ring);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 11%, transparent), transparent 62%);
+  }
+
+  .modal-head::before {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    content: "";
+    background: var(--accent);
+    box-shadow: 0 0 18px var(--accent);
+  }
+
+  .modal-heading { min-width: 0; }
+
+  .modal-kicker {
+    margin: 0 0 var(--space-1);
+    color: var(--accent);
+    font-size: var(--fs-xs);
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .modal-title {
+    margin: 0;
+    overflow: hidden;
+    font-size: var(--fs-xl);
+    line-height: 1.1;
+    letter-spacing: 0.02em;
+    text-overflow: ellipsis;
+    text-wrap: balance;
+    white-space: nowrap;
+  }
+
+  .modal-close {
+    display: grid;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 1px solid var(--ring);
+    border-radius: var(--radius-md);
+    background: var(--surface-soft);
+    color: var(--ink-2);
+    cursor: pointer;
+    font-size: var(--fs-lg);
+    transition-property: color, background-color, transform;
+    transition-duration: 150ms;
+    transition-timing-function: var(--ease-out);
+  }
+
+  .modal-close:active,
+  .copy-button:active { transform: scale(0.96); }
+
+  .modal-body {
+    display: grid;
+    align-content: start;
+    overflow-y: auto;
+    padding: var(--space-5);
+    gap: var(--space-5);
+    scrollbar-color: var(--grid) var(--surface-soft);
+    scrollbar-width: thin;
+  }
+
+  .modal-section {
+    display: grid;
+    min-width: 0;
+    gap: var(--space-3);
+  }
+
+  .modal-section-title {
+    margin: 0;
+    color: var(--system);
+    font-size: var(--fs-sm);
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .credential-list,
+  .host-list {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .credential-row,
+  .host-row {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    border: 1px solid var(--ring);
+    border-radius: var(--radius-md);
+    background: var(--surface-soft);
+  }
+
+  .credential-label,
+  .host-team,
+  .metadata-label {
+    display: block;
+    color: var(--muted);
+    font-size: var(--fs-xs);
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .copy-value {
+    display: block;
+    margin-top: var(--space-1);
+    overflow-wrap: anywhere;
+    color: var(--ink);
+    font-size: var(--fs-md);
+    font-weight: 700;
+    user-select: all;
+  }
+
+  .copy-button {
+    min-width: 84px;
+    min-height: 40px;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--ring-bright);
+    border-radius: var(--radius-sm);
+    background: rgba(61, 242, 224, 0.06);
+    color: var(--system);
+    cursor: pointer;
+    font-size: var(--fs-xs);
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    transition-property: color, background-color, transform;
+    transition-duration: 150ms;
+    transition-timing-function: var(--ease-out);
+  }
+
+  .copy-button.copied {
+    background: rgba(12, 163, 12, 0.14);
+    color: var(--positive);
+  }
+
+  .modal-stats {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(120px, 1fr));
+    gap: var(--space-2);
+  }
+
+  .modal-stat {
+    min-width: 0;
+    padding: var(--space-3);
+    border: 1px solid var(--ring);
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.018);
+  }
+
+  .modal-stat strong {
+    display: block;
+    overflow: hidden;
+    color: var(--ink);
+    font-size: var(--fs-xl);
+    line-height: 1.1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .modal-stat span {
+    color: var(--muted);
+    font-size: var(--fs-xs);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .modal-stat.positive strong { color: var(--positive); }
+  .modal-stat.negative strong { color: var(--negative); }
+
+  .detail-table-wrap {
+    min-width: 0;
+    overflow-x: auto;
+    border: 1px solid var(--ring);
+    border-radius: var(--radius-md);
+  }
+
+  .detail-table {
+    width: 100%;
+    min-width: 760px;
+    border-collapse: collapse;
+    font-size: var(--fs-sm);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .detail-table th,
+  .detail-table td {
+    padding: var(--space-3);
+    border-bottom: 1px solid var(--ring);
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .detail-table th {
+    background: rgba(0, 0, 0, 0.2);
+    color: var(--muted);
+    font-size: var(--fs-xs);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .detail-table th:not(:first-child),
+  .detail-table td:not(:first-child) { text-align: right; }
+  .detail-table tr:last-child td { border-bottom: 0; }
+
+  .detail-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-2);
+    font-weight: 800;
+  }
+
+  .modal-columns {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4);
+  }
+
+  .attack-mini-list {
+    display: grid;
+    align-content: start;
+    gap: var(--space-2);
+  }
+
+  .attack-mini {
+    display: grid;
+    grid-template-columns: 74px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border-left: 2px solid var(--accent);
+    background: rgba(255, 255, 255, 0.018);
+    font-size: var(--fs-xs);
+  }
+
+  .attack-mini time { color: var(--muted); }
+
+  .attack-mini-main {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--ink-2);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .attack-mini-service {
+    color: var(--ink);
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .metadata-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(120px, 1fr));
+    overflow: hidden;
+    border: 1px solid var(--ring);
+    border-radius: var(--radius-md);
+  }
+
+  .metadata-item {
+    min-width: 0;
+    padding: var(--space-3);
+    border-right: 1px solid var(--ring);
+    border-bottom: 1px solid var(--ring);
+  }
+
+  .metadata-value {
+    display: block;
+    margin-top: var(--space-1);
+    overflow-wrap: anywhere;
+    color: var(--ink);
+    font-size: var(--fs-md);
+    font-weight: 700;
+  }
+
+  .first-blood-card {
+    padding: var(--space-3);
+    border: 1px solid rgba(208, 59, 59, 0.35);
+    border-radius: var(--radius-md);
+    background: rgba(208, 59, 59, 0.07);
+    color: var(--ink-2);
+    font-size: var(--fs-sm);
+  }
+
+  .first-blood-card strong { color: var(--blood); }
+
+  .modal-empty {
+    padding: var(--space-4);
+    border: 1px dashed var(--ring);
+    border-radius: var(--radius-md);
+    color: var(--muted);
+    font-size: var(--fs-sm);
+    text-align: center;
+  }
+
+  @keyframes heartbeat {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    45% { opacity: 0.25; transform: scale(0.72); }
+  }
+
+  @keyframes indeterminate {
+    from { transform: translateX(-120%); }
+    to { transform: translateX(320%); }
+  }
+
+  @keyframes status-burst {
+    0% { filter: brightness(1); transform: scale(1); }
+    35% { filter: brightness(1.85); transform: scale(1.8); }
+    100% { filter: brightness(1); transform: scale(1); }
+  }
+
+  @keyframes attack-enter {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 1080px) {
+    .topbar { grid-template-columns: 1fr auto; }
+    .round-progress { grid-column: 1 / -1; margin-top: var(--space-2); }
+    .bottom-grid { grid-template-columns: 1fr; }
+    .attack-feed { height: 336px; }
+    .modal-stats { grid-template-columns: repeat(3, minmax(120px, 1fr)); }
+  }
+
+  @media (max-width: 700px) {
+    .topbar { grid-template-columns: 1fr; gap: var(--space-3); }
+    .round-cluster { justify-content: space-between; }
+    .round-progress { grid-column: auto; }
+    .brand small { display: none; }
+    .rank-card { grid-template-columns: 82px 1fr; }
+    .rank-content { padding: var(--space-3); }
+    .hero-stats { grid-template-columns: repeat(2, 1fr); }
+    .panel-head { align-items: center; }
+    .feed-head { flex-wrap: wrap; }
+    .feed-toggle { width: 100%; }
+    .feed-toggle button { flex: 1; }
+    .attack-row {
+      grid-template-columns: 56px minmax(76px, 1fr) 14px minmax(76px, 1fr);
+    }
+    .attack-service { grid-column: 2 / -1; text-align: left; }
+    .modal-backdrop { padding: var(--space-2); }
+    .detail-dialog { max-height: calc(100vh - (var(--space-2) * 2)); }
+    .modal-head,
+    .modal-body { padding: var(--space-3); }
+    .modal-title { font-size: var(--fs-lg); }
+    .modal-stats,
+    .modal-columns,
+    .metadata-grid { grid-template-columns: 1fr; }
+    .credential-row,
+    .host-row { grid-template-columns: 1fr; }
+    .copy-button { width: 100%; }
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .feed-toggle button:hover { color: var(--ink); }
+    .matrix-cell:hover .matrix-score { color: var(--ink); }
+    .rank-card:hover { transform: translateY(-2px); box-shadow: 0 18px 48px rgba(0, 0, 0, 0.38), inset 0 0 42px color-mix(in srgb, var(--team) 7%, transparent); }
+    .matrix-header:hover,
+    .matrix-team:hover,
+    .matrix-cell:hover { background-color: rgba(61, 242, 224, 0.055); }
+    .modal-close:hover,
+    .copy-button:hover { color: var(--ink); background-color: rgba(61, 242, 224, 0.12); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .live-state.heartbeat .live-dot,
+    .round-progress.indeterminate .progress-fill,
+    .matrix-cell.status-changed .status-icon,
+    .attack-row.is-new { animation: none; }
+    .progress-fill,
+    .feed-toggle button,
+    .rank-card,
+    .modal-backdrop,
+    .detail-dialog,
+    .modal-close,
+    .copy-button { transition-duration: 0.001ms; }
+    .round-progress.indeterminate .progress-fill { transform: translateX(95%); }
+    .modal-backdrop .detail-dialog,
+    .rank-card:hover { transform: none; }
+  }
 </style>
 </head>
 <body>
-<header>
-  <h1>Cyb0x1 · Attack-Defense</h1>
-  <span class="sub">dashboard read-only</span>
-  <div class="pill">
-    <div><b id="round">–</b><span>ronde</span></div>
-    <div><b id="state">–</b><span>status</span></div>
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true">C1</div>
+    <div class="brand-copy">
+      <h1>Cyb0x1 · War Room</h1>
+      <small>Attack–Defense command display · read-only</small>
+    </div>
+  </div>
+
+  <div class="round-cluster">
+    <div class="round-readout">&gt; ROUND <span class="round-value" id="round">---</span></div>
+    <div class="live-state" id="live-state" aria-live="polite">
+      <span class="live-dot" aria-hidden="true">●</span><span id="live-label">SYNC</span>
+    </div>
+  </div>
+
+  <div class="round-progress indeterminate" id="round-progress">
+    <div class="progress-meta"><span>progres ronde</span><span id="progress-label">menunggu sinkronisasi</span></div>
+    <div class="progress-track" role="progressbar" aria-label="Progres menuju ronde berikutnya" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
   </div>
 </header>
 
+<div class="stale-banner" id="stale-banner" role="status">koneksi tidak stabil · menampilkan data terakhir</div>
+
 <main>
-  <section class="card">
-    <h2>Scoreboard</h2>
-    <table id="board"><thead></thead><tbody></tbody></table>
+  <section aria-label="Scoreboard">
+    <div class="hero-grid" id="hero-grid">
+      <div class="panel empty">menunggu data scoreboard</div>
+    </div>
   </section>
 
-  <section class="card">
-    <h2>Timeline skor</h2>
-    <div class="legend" id="tl-legend"></div>
-    <div id="chart"></div>
+  <section class="panel" aria-labelledby="matrix-title">
+    <div class="panel-head">
+      <h2 class="panel-title" id="matrix-title">&gt; SERVICE STATUS MATRIX</h2>
+      <span class="panel-meta" id="matrix-meta">0 tim · 0 service</span>
+    </div>
+    <div class="matrix-wrap" id="matrix-wrap">
+      <div class="empty">menunggu status service</div>
+    </div>
+    <div class="matrix-legend" aria-label="Legenda status layanan">
+      <span class="st-UP">● UP</span>
+      <span class="st-DOWN">▼ DOWN</span>
+      <span class="st-MUMBLE">◆ MUMBLE / CORRUPT</span>
+      <span class="st-ERROR">■ ERROR</span>
+      <span class="st-NA">○ N/A</span>
+      <span>· arahkan kursor untuk SLA / stolen / lost</span>
+    </div>
   </section>
 
-  <section class="card">
-    <h2>Log serangan</h2>
-    <table id="attacks"><thead>
-      <tr><th>waktu</th><th>penyerang</th><th></th><th>korban</th><th>service</th></tr>
-    </thead><tbody></tbody></table>
-  </section>
+  <div class="bottom-grid">
+    <section class="panel timeline-panel" aria-labelledby="timeline-title">
+      <div class="panel-head">
+        <h2 class="panel-title" id="timeline-title">&gt; SCORE TIMELINE</h2>
+        <span class="panel-meta" id="timeline-meta">riwayat ronde</span>
+      </div>
+      <div class="timeline-body">
+        <div class="timeline-legend" id="timeline-legend"></div>
+        <div class="chart" id="chart">
+          <div class="empty">menunggu data timeline</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel feed-panel" aria-labelledby="feed-title">
+      <div class="panel-head feed-head">
+        <div class="feed-heading-wrap">
+          <h2 class="panel-title" id="feed-title">&gt; ATTACK FEED</h2>
+          <span class="feed-target" id="feed-target">semua aktivitas serangan</span>
+        </div>
+        <div class="feed-toggle" aria-label="Mode feed serangan">
+          <button type="button" id="mode-attacks" aria-pressed="true">ATTACKS</button>
+          <button type="button" id="mode-defense" aria-pressed="false">DEFENSE</button>
+        </div>
+      </div>
+      <div class="attack-feed" id="attack-feed" aria-live="polite">
+        <div class="empty">menunggu log serangan</div>
+      </div>
+    </section>
+  </div>
 </main>
-<div class="foot">auto-refresh tiap 5 detik · sumber: Postgres ForcAD (read-only)</div>
+
+<footer>auto-refresh 5 detik · sumber Postgres ForcAD · dashboard read-only</footer>
+
+<div class="modal-backdrop" id="detail-modal" hidden>
+  <section class="detail-dialog" id="detail-dialog" role="dialog" aria-modal="true" aria-labelledby="detail-title" tabindex="-1">
+    <header class="modal-head">
+      <div class="modal-heading">
+        <p class="modal-kicker" id="detail-kicker">&gt; DETAIL</p>
+        <h2 class="modal-title" id="detail-title">Detail</h2>
+      </div>
+      <button class="modal-close" id="modal-close" type="button" aria-label="Tutup detail">×</button>
+    </header>
+    <div class="modal-body" id="modal-body"></div>
+  </section>
+</div>
 
 <script>
-const TEAM_COLORS = ['var(--team-1)', 'var(--team-2)'];
-const ICON = { UP:'●', DOWN:'▼', MUMBLE:'◆', CORRUPT:'◆', ERROR:'■', 'N/A':'○' };
-const j = (u) => fetch(u).then(r => r.json());
-const esc = (s) => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+(() => {
+  'use strict';
 
-let TASKS = [];
-const colorFor = (teamId, ranked) => TEAM_COLORS[ranked.findIndex(t => t.team_id === teamId) % 2];
+  const TEAM_COLORS = [
+    'var(--team-1)', 'var(--team-2)', 'var(--team-3)', 'var(--team-4)',
+    'var(--team-5)', 'var(--team-6)', 'var(--team-7)', 'var(--team-8)'
+  ];
+  const STATUS = {
+    UP: { icon: '●', className: 'st-UP' },
+    DOWN: { icon: '▼', className: 'st-DOWN' },
+    MUMBLE: { icon: '◆', className: 'st-MUMBLE' },
+    CORRUPT: { icon: '◆', className: 'st-CORRUPT' },
+    ERROR: { icon: '■', className: 'st-ERROR' },
+    'N/A': { icon: '○', className: 'st-NA' }
+  };
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const numberFormat = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 });
+  const compactFormat = new Intl.NumberFormat('id-ID', { notation: 'compact', maximumFractionDigits: 1 });
 
-async function refreshGame() {
-  const g = await j('/api/game');
-  document.getElementById('round').textContent = g.real_round ?? '–';
-  document.getElementById('state').textContent = g.game_running ? 'JALAN' : 'STOP';
-}
+  const state = {
+    game: null,
+    scoreboard: null,
+    attacks: [],
+    timeline: [],
+    firstblood: {},
+    attackMode: 'attacks',
+    seenAttacks: new Set(),
+    freshAttacks: new Set(),
+    previousStatuses: new Map(),
+    counterValues: new Map(),
+    lastRound: null,
+    roundStartedAt: null,
+    roundStartKnown: false,
+    stale: false,
+    modal: { type: null, id: null, trigger: null, origin: null, closing: false }
+  };
 
-async function refreshBoard() {
-  const d = await j('/api/scoreboard');
-  TASKS = d.tasks;
-  const head = document.querySelector('#board thead');
-  head.innerHTML = '<tr><th class="rank">#</th><th>tim</th><th class="num">total</th><th>service</th></tr>';
-  const body = document.querySelector('#board tbody');
-  body.innerHTML = d.teams.map((t, i) => {
-    const dot = `<span class="team-dot" style="background:${TEAM_COLORS[i%2]}"></span>`;
-    const svcs = d.tasks.map(tk => {
-      const s = t.services[tk.id];
-      if (!s) return '';
-      const cls = s.status.replace('/', '');
-      return `<span class="svc st-${cls}" title="${tk.name}: SLA ${s.sla}% · stolen ${s.stolen} · lost ${s.lost}">
-        <span class="ico">${ICON[s.status] ?? '○'}</span>${esc(tk.name)} ${s.score}</span>`;
-    }).join('');
-    return `<tr>
-      <td class="rank">${t.pos}</td>
-      <td>${dot}${esc(t.team)}</td>
-      <td class="num"><b>${t.total}</b></td>
-      <td><div class="svcgrid">${svcs}</div></td></tr>`;
-  }).join('');
-  return d.teams;
-}
-
-async function refreshAttacks() {
-  const rows = await j('/api/attacks?limit=40');
-  const body = document.querySelector('#attacks tbody');
-  if (!rows.length) { body.innerHTML = '<tr><td colspan="5" class="empty">belum ada serangan</td></tr>'; return; }
-  body.innerHTML = rows.map(r => {
-    const t = new Date(r.submit_time).toLocaleTimeString('id-ID');
-    return `<tr class="att-row"><td>${t}</td><td>${esc(r.attacker)}</td>
-      <td class="arrow">→</td><td>${esc(r.victim)}</td><td>${esc(r.service)}</td></tr>`;
-  }).join('');
-}
-
-function drawTimeline(ranked) {
-  const data = [];
-  j('/api/timeline').then(rows => {
-    const W = 1040, H = 240, P = { l: 44, r: 16, t: 16, b: 26 };
-    const byTeam = {};
-    let maxR = 0, maxS = 0;
-    rows.forEach(r => {
-      (byTeam[r.team_id] ??= { name: r.team, pts: [] }).pts.push([r.round, r.score]);
-      maxR = Math.max(maxR, r.round); maxS = Math.max(maxS, r.score);
+  const byId = id => document.getElementById(id);
+  const safeNumber = (value, fallback = 0) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+  };
+  const safeInt = (value, fallback = 0) => Math.trunc(safeNumber(value, fallback));
+  const safeText = (value, fallback = '–') => value === null || value === undefined || value === '' ? fallback : String(value);
+  const esc = value => safeText(value).replace(/[&<>"']/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[char]);
+  const formatNumber = value => numberFormat.format(safeNumber(value));
+  const formatCompact = value => compactFormat.format(safeNumber(value));
+  const formatMaybe = (value, suffix = '') => value === null || value === undefined || value === ''
+    ? '–'
+    : `${formatNumber(value)}${suffix}`;
+  const normalizeStatus = value => Object.hasOwn(STATUS, value) ? value : 'N/A';
+  const teamSlotColor = index => TEAM_COLORS[((index % TEAM_COLORS.length) + TEAM_COLORS.length) % TEAM_COLORS.length];
+  // Warna mengikuti identitas tim (sama seperti logo), bukan peringkat: Athena
+  // tetap biru dan Ares tetap merah walau posisi klasemen bertukar. Tim lain
+  // jatuh ke slot palet sesuai urutan.
+  const TEAM_IDENTITY_COLORS = [[/athena/i, 'var(--team-1)'], [/ares/i, 'var(--team-2)']];
+  const teamColor = index => {
+    const team = (state.scoreboard?.teams || [])[index];
+    const name = safeText(team?.team, '');
+    const hit = TEAM_IDENTITY_COLORS.find(([pattern]) => pattern.test(name));
+    return hit ? hit[1] : teamSlotColor(index);
+  };
+  const teamIndexById = teamId => {
+    const teams = state.scoreboard?.teams || [];
+    const index = teams.findIndex(team => String(team.team_id) === String(teamId));
+    return index < 0 ? 0 : index;
+  };
+  const teamColorByName = name => {
+    const teams = state.scoreboard?.teams || [];
+    const index = teams.findIndex(team => safeText(team.team, '') === safeText(name, ''));
+    return index < 0 ? 'var(--ink-2)' : teamColor(index);
+  };
+  const teamLogoClass = name => {
+    const identity = safeText(name, '').toLowerCase();
+    if (identity.includes('athena')) return ' has-team-logo team-logo-athena';
+    if (identity.includes('ares')) return ' has-team-logo team-logo-ares';
+    return '';
+  };
+  const serviceFor = (team, taskId) => team?.services?.[String(taskId)] || null;
+  const formatTime = value => {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? '--:--:--' : date.toLocaleTimeString('id-ID', {
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
     });
-    maxS = maxS || 1; maxR = maxR || 1;
-    const x = r => P.l + (r / maxR) * (W - P.l - P.r);
-    const y = s => H - P.b - (s / maxS) * (H - P.t - P.b);
+  };
+  const formatDateTime = value => {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? 'waktu tidak tersedia' : date.toLocaleString('id-ID', {
+      dateStyle: 'medium', timeStyle: 'medium'
+    });
+  };
+  const attackKey = row => [row?.submit_time, row?.attacker, row?.victim, row?.service, row?.flag_round]
+    .map(value => safeText(value, '')).join('|');
 
-    const grid = [0, .25, .5, .75, 1].map(f => {
-      const yy = y(maxS * f);
-      return `<line x1="${P.l}" y1="${yy}" x2="${W-P.r}" y2="${yy}" stroke="var(--grid)"/>
-        <text x="${P.l-8}" y="${yy+3}" text-anchor="end">${Math.round(maxS*f)}</text>`;
+  async function fetchJSON(url) {
+    const response = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.json();
+  }
+
+  function setStale(isStale) {
+    state.stale = isStale;
+    byId('stale-banner').classList.toggle('visible', isStale);
+    const live = byId('live-state');
+    live.classList.toggle('stale', isStale);
+    if (isStale) byId('live-label').textContent = 'RECONNECT';
+  }
+
+  function pulseLive() {
+    const live = byId('live-state');
+    live.classList.remove('heartbeat');
+    void live.offsetWidth;
+    live.classList.add('heartbeat');
+  }
+
+  function renderGame(game) {
+    if (!game || typeof game !== 'object') return;
+    const round = safeInt(game.real_round, 0);
+    const running = Boolean(game.game_running);
+    const live = byId('live-state');
+
+    byId('round').textContent = String(round).padStart(3, '0');
+    live.classList.toggle('running', running);
+    if (!state.stale) byId('live-label').textContent = running ? 'LIVE' : 'PAUSED';
+
+    if (state.lastRound === null) {
+      state.lastRound = round;
+      state.roundStartKnown = false;
+    } else if (round !== state.lastRound) {
+      state.lastRound = round;
+      state.roundStartedAt = Date.now();
+      state.roundStartKnown = true;
+    }
+    state.game = {
+      real_round: round,
+      flag_lifetime: safeInt(game.flag_lifetime, 0),
+      round_time: Math.max(0, safeNumber(game.round_time, 0)),
+      game_running: running
+    };
+  }
+
+  function updateRoundProgress() {
+    const progress = byId('round-progress');
+    const track = progress.querySelector('[role="progressbar"]');
+    const fill = byId('progress-fill');
+    const label = byId('progress-label');
+    const seconds = state.game?.round_time || 0;
+
+    if (!state.roundStartKnown || !state.roundStartedAt || seconds <= 0) {
+      progress.classList.add('indeterminate');
+      track.setAttribute('aria-valuenow', '0');
+      label.textContent = seconds > 0 ? 'sinkronisasi ronde' : 'durasi tidak tersedia';
+    } else {
+      const elapsed = Math.max(0, (Date.now() - state.roundStartedAt) / 1000);
+      const percent = Math.min(100, (elapsed / seconds) * 100);
+      const remaining = Math.max(0, Math.ceil(seconds - elapsed));
+      progress.classList.remove('indeterminate');
+      fill.style.width = `${percent.toFixed(2)}%`;
+      track.setAttribute('aria-valuenow', String(Math.round(percent)));
+      label.textContent = `${remaining}s ke ronde berikutnya`;
+    }
+    window.requestAnimationFrame(updateRoundProgress);
+  }
+
+  function teamAggregates(team, tasks) {
+    const services = tasks.map(task => serviceFor(team, task.id)).filter(Boolean);
+    const up = services.filter(service => normalizeStatus(service.status) === 'UP').length;
+    const sla = services.length
+      ? services.reduce((sum, service) => sum + safeNumber(service.sla), 0) / services.length
+      : null;
+    return {
+      up,
+      totalServices: tasks.length,
+      sla,
+      stolen: services.reduce((sum, service) => sum + safeInt(service.stolen), 0),
+      lost: services.reduce((sum, service) => sum + safeInt(service.lost), 0)
+    };
+  }
+
+  function renderHeroes() {
+    const host = byId('hero-grid');
+    const tasks = Array.isArray(state.scoreboard?.tasks) ? state.scoreboard.tasks : [];
+    const teams = Array.isArray(state.scoreboard?.teams) ? state.scoreboard.teams : [];
+    if (!teams.length) {
+      host.innerHTML = '<div class="panel empty">belum ada data tim</div>';
+      return;
+    }
+
+    host.innerHTML = teams.map((team, index) => {
+      const stats = teamAggregates(team, tasks);
+      const rank = safeInt(team.pos, index + 1);
+      const teamName = safeText(team.team, `Tim ${index + 1}`);
+      const logoClass = teamLogoClass(teamName);
+      const own = team.highlighted ? '<span class="own-tag">TIM KITA</span>' : '';
+      const sla = stats.sla === null ? '–' : `${formatNumber(stats.sla)}%`;
+      return `<button class="rank-card${logoClass}" type="button" data-team-id="${esc(safeText(team.team_id, index))}" style="--team:${teamColor(index)}" aria-label="Buka detail tim ${esc(teamName)}, peringkat ${rank}">
+        <div class="rank-block">
+          <span class="rank-label">peringkat</span>
+          <strong class="rank-number num">${rank}</strong>
+        </div>
+        <div class="rank-content">
+          <div class="team-heading">
+            <div class="team-name-wrap">
+              <h2 class="team-name" title="${esc(teamName)}">${esc(teamName)}</h2>
+              <span class="team-id">squad.${String(safeInt(team.team_id, index + 1)).padStart(2, '0')}</span>
+            </div>
+            ${own}
+          </div>
+          <div>
+            <strong class="total-score num" data-counter-key="team-${esc(team.team_id)}-total" data-target="${safeNumber(team.total)}">${formatNumber(team.total)}</strong>
+            <span class="total-label">skor resmi Σ(score × SLA)</span>
+          </div>
+          <div class="hero-stats">
+            <div class="hero-stat"><b class="num">${stats.up}/${stats.totalServices}</b><span>service UP</span></div>
+            <div class="hero-stat"><b class="num">${sla}</b><span>rerata SLA</span></div>
+            <div class="hero-stat positive"><b class="num">+${stats.stolen}</b><span>stolen</span></div>
+            <div class="hero-stat negative"><b class="num">−${stats.lost}</b><span>lost</span></div>
+          </div>
+        </div>
+      </button>`;
+    }).join('');
+    animateCounters(host);
+  }
+
+  function firstBloodFor(taskId) {
+    const entry = state.firstblood?.[String(taskId)];
+    return entry && typeof entry === 'object' ? entry : null;
+  }
+
+  function renderMatrix() {
+    const wrap = byId('matrix-wrap');
+    const tasks = Array.isArray(state.scoreboard?.tasks) ? state.scoreboard.tasks : [];
+    const teams = Array.isArray(state.scoreboard?.teams) ? state.scoreboard.teams : [];
+    byId('matrix-meta').textContent = `${teams.length} tim · ${tasks.length} service`;
+
+    if (!tasks.length || !teams.length) {
+      wrap.innerHTML = '<div class="empty">belum ada data service</div>';
+      return;
+    }
+
+    const oldStatuses = state.previousStatuses;
+    const nextStatuses = new Map();
+    const headers = tasks.map(task => {
+      const name = safeText(task.name, `service ${safeText(task.id)}`);
+      const blood = firstBloodFor(task.id);
+      const bloodTitle = blood
+        ? `First blood: ${safeText(blood.attacker)} · ${formatTime(blood.submit_time)}`
+        : '';
+      const tag = blood
+        ? `<span class="fb-tag" title="${esc(bloodTitle)}"><span aria-hidden="true">◆</span> FB</span>`
+        : '<span class="fb-spacer" aria-hidden="true"></span>';
+      return `<button class="matrix-header" type="button" role="columnheader" data-service-id="${esc(safeText(task.id))}" title="Buka detail service ${esc(name)}" aria-label="Buka detail service ${esc(name)}">
+        <span class="service-name">${esc(name)}</span>${tag}
+      </button>`;
     }).join('');
 
-    const teamIds = Object.keys(byTeam);
-    const lines = teamIds.map((tid) => {
-      const col = colorFor(Number(tid), ranked);
-      const pts = byTeam[tid].pts.sort((a,b)=>a[0]-b[0]);
-      const path = pts.map((p,i) => `${i?'L':'M'}${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join(' ');
-      const last = pts[pts.length-1];
-      const dot = last ? `<circle cx="${x(last[0])}" cy="${y(last[1])}" r="4" fill="${col}"
-                          stroke="var(--surface)" stroke-width="2"/>` : '';
-      return `<path d="${path}" fill="none" stroke="${col}" stroke-width="2"
-              stroke-linejoin="round" stroke-linecap="round"/>${dot}`;
+    const rows = teams.map((team, teamIndex) => {
+      const teamName = safeText(team.team, `Tim ${teamIndex + 1}`);
+      const rank = safeInt(team.pos, teamIndex + 1);
+      const cells = tasks.map(task => {
+        const service = serviceFor(team, task.id);
+        const status = normalizeStatus(service?.status);
+        const statusMeta = STATUS[status];
+        const key = `${safeText(team.team_id, teamIndex)}:${safeText(task.id)}`;
+        const changed = oldStatuses.has(key) && oldStatuses.get(key) !== status;
+        nextStatuses.set(key, status);
+        const taskName = safeText(task.name, `service ${safeText(task.id)}`);
+        const title = service
+          ? `${teamName} · ${taskName} · ${status} · SLA ${formatNumber(service.sla)}% · stolen ${safeInt(service.stolen)} · lost ${safeInt(service.lost)}`
+          : `${teamName} · ${taskName} · N/A · data belum tersedia`;
+        return `<button class="matrix-cell ${statusMeta.className}${changed ? ' status-changed' : ''}" type="button" role="cell" data-service-id="${esc(safeText(task.id))}" title="${esc(title)} · klik untuk detail service">
+          <span class="status-line"><span class="status-icon" aria-hidden="true">${statusMeta.icon}</span><span>${status}</span></span>
+          <strong class="matrix-score num" data-counter-key="svc-${esc(key)}" data-target="${safeNumber(service?.score)}">${service ? formatNumber(service.score) : '–'}</strong>
+        </button>`;
+      }).join('');
+      return `<div class="matrix-row" role="row">
+        <button class="matrix-team" type="button" role="rowheader" data-team-id="${esc(safeText(team.team_id, teamIndex))}" style="--team:${teamColor(teamIndex)}" title="Buka detail tim ${esc(teamName)}">
+          <span class="matrix-rank num">#${rank}</span><span class="matrix-team-name">${esc(teamName)}</span>
+        </button>${cells}
+      </div>`;
     }).join('');
 
-    document.getElementById('chart').innerHTML =
-      `<svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img"
-            aria-label="Timeline skor per tim per ronde">
-        ${grid}
-        <line x1="${P.l}" y1="${H-P.b}" x2="${W-P.r}" y2="${H-P.b}" stroke="var(--axis)"/>
-        <text x="${W-P.r}" y="${H-6}" text-anchor="end">ronde ${maxR}</text>
-        ${lines}
-      </svg>`;
+    wrap.innerHTML = `<div class="service-matrix" role="table" aria-label="Status service per tim" style="--service-count:${tasks.length}">
+      <div class="matrix-row" role="row">
+        <div class="matrix-corner" role="columnheader">tim / service</div>${headers}
+      </div>${rows}
+    </div>`;
+    state.previousStatuses = nextStatuses;
+    animateCounters(wrap);
+  }
 
-    // legend + direct label — identitas tidak lewat warna saja
-    document.getElementById('tl-legend').innerHTML = ranked.map((t,i) =>
-      `<span><i style="background:${TEAM_COLORS[i%2]}"></i>${esc(t.team)}</span>`).join('');
+  function animateCounters(root) {
+    root.querySelectorAll('[data-counter-key]').forEach(element => {
+      const key = element.dataset.counterKey;
+      const target = safeNumber(element.dataset.target);
+      const start = state.counterValues.has(key) ? state.counterValues.get(key) : 0;
+      state.counterValues.set(key, target);
+      if (reducedMotion.matches || start === target) {
+        element.textContent = formatNumber(target);
+        return;
+      }
+      const startTime = performance.now();
+      const duration = 620;
+      const step = now => {
+        const progress = Math.min(1, (now - startTime) / duration);
+        const eased = 1 - ((1 - progress) ** 4);
+        element.textContent = formatNumber(start + ((target - start) * eased));
+        if (progress < 1 && element.isConnected) window.requestAnimationFrame(step);
+      };
+      window.requestAnimationFrame(step);
+    });
+  }
+
+  function statusHTML(value) {
+    const status = normalizeStatus(value);
+    const meta = STATUS[status];
+    return `<span class="detail-status ${meta.className}"><span aria-hidden="true">${meta.icon}</span><span>${status}</span></span>`;
+  }
+
+  function copyRow(label, value, key, secondary = '') {
+    const text = safeText(value);
+    return `<div class="credential-row">
+      <div><span class="credential-label">${esc(label)}${secondary ? ` · ${esc(secondary)}` : ''}</span><code class="copy-value">${esc(text)}</code></div>
+      <button class="copy-button" type="button" data-copy-key="${esc(key)}" data-copy-value="${esc(text)}">salin</button>
+    </div>`;
+  }
+
+  function renderAttackMini(rows, mode) {
+    if (!rows.length) return '<div class="modal-empty">belum ada aktivitas</div>';
+    return `<div class="attack-mini-list">${rows.slice(0, 8).map(row => {
+      const attacker = safeText(row?.attacker);
+      const victim = safeText(row?.victim);
+      const service = safeText(row?.service);
+      let description = `${attacker} → ${victim}`;
+      if (mode === 'attacker') description = `→ ${victim}`;
+      if (mode === 'victim') description = `← ${attacker}`;
+      return `<div class="attack-mini">
+        <time datetime="${esc(row?.submit_time)}">${formatTime(row?.submit_time)}</time>
+        <span class="attack-mini-main" title="${esc(description)}">${esc(description)}</span>
+        <span class="attack-mini-service" title="${esc(service)}">${esc(service)} · R${safeInt(row?.flag_round)}</span>
+      </div>`;
+    }).join('')}</div>`;
+  }
+
+  function renderTeamModal(team, teamIndex) {
+    const tasks = Array.isArray(state.scoreboard?.tasks) ? state.scoreboard.tasks : [];
+    const stats = teamAggregates(team, tasks);
+    const teamName = safeText(team.team, `Tim ${teamIndex + 1}`);
+    const rank = safeInt(team.pos, teamIndex + 1);
+    const asAttacker = state.attacks.filter(row => safeText(row?.attacker, '') === teamName);
+    const asVictim = state.attacks.filter(row => safeText(row?.victim, '') === teamName);
+
+    byId('detail-dialog').style.setProperty('--accent', teamColor(teamIndex));
+    byId('detail-kicker').textContent = `> TEAM DETAIL · PERINGKAT #${rank}`;
+    byId('detail-title').textContent = teamName;
+
+    const serviceRows = tasks.map(task => {
+      const service = serviceFor(team, task.id);
+      return `<tr>
+        <td>${esc(safeText(task.name, `service ${safeText(task.id)}`))}</td>
+        <td>${statusHTML(service?.status)}</td>
+        <td>${esc(formatMaybe(service?.score))}</td>
+        <td>${esc(formatMaybe(service?.sla, '%'))}</td>
+        <td>${esc(formatMaybe(service?.stolen))}</td>
+        <td>${esc(formatMaybe(service?.lost))}</td>
+      </tr>`;
+    }).join('');
+
+    return `<section class="modal-section" aria-labelledby="team-access-title">
+      <h3 class="modal-section-title" id="team-access-title">&gt; AKSES TIM</h3>
+      <div class="credential-list">
+        ${copyRow('IP address', team.ip, `team-${safeText(team.team_id)}-ip`)}
+        ${copyRow('Team token', team.token, `team-${safeText(team.team_id)}-token`)}
+      </div>
+    </section>
+    <section class="modal-section" aria-label="Ringkasan tim">
+      <div class="modal-stats">
+        <div class="modal-stat"><strong class="num">${esc(formatNumber(team.total))}</strong><span>total skor</span></div>
+        <div class="modal-stat"><strong class="num">${stats.sla === null ? '–' : `${esc(formatNumber(stats.sla))}%`}</strong><span>rerata SLA</span></div>
+        <div class="modal-stat"><strong class="num">${stats.up}/${stats.totalServices}</strong><span>service UP</span></div>
+        <div class="modal-stat positive"><strong class="num">+${stats.stolen}</strong><span>stolen</span></div>
+        <div class="modal-stat negative"><strong class="num">−${stats.lost}</strong><span>lost</span></div>
+      </div>
+    </section>
+    <section class="modal-section" aria-labelledby="team-services-title">
+      <h3 class="modal-section-title" id="team-services-title">&gt; RINCIAN SERVICE</h3>
+      <div class="detail-table-wrap"><table class="detail-table">
+        <thead><tr><th>service</th><th>status</th><th>skor</th><th>SLA</th><th>stolen</th><th>lost</th></tr></thead>
+        <tbody>${serviceRows || '<tr><td colspan="6">belum ada service</td></tr>'}</tbody>
+      </table></div>
+    </section>
+    <div class="modal-columns">
+      <section class="modal-section" aria-labelledby="team-attacking-title">
+        <h3 class="modal-section-title" id="team-attacking-title">&gt; MENYERANG · ${asAttacker.length}</h3>
+        ${renderAttackMini(asAttacker, 'attacker')}
+      </section>
+      <section class="modal-section" aria-labelledby="team-defending-title">
+        <h3 class="modal-section-title" id="team-defending-title">&gt; DISERANG · ${asVictim.length}</h3>
+        ${renderAttackMini(asVictim, 'victim')}
+      </section>
+    </div>`;
+  }
+
+  function renderServiceModal(task) {
+    const teams = Array.isArray(state.scoreboard?.teams) ? state.scoreboard.teams : [];
+    const serviceName = safeText(task.name, `service ${safeText(task.id)}`);
+    const ports = safeText(task.ports, '?');
+    const blood = firstBloodFor(task.id);
+    const attacks = state.attacks.filter(row => safeText(row?.service, '') === serviceName);
+    const metadata = [
+      ['checker type', task.checker_type], ['timeout', task.checker_timeout],
+      ['puts', task.puts], ['gets', task.gets], ['places', task.places],
+      ['get period', task.get_period], ['default score', task.default_score]
+    ];
+
+    byId('detail-dialog').style.setProperty('--accent', 'var(--system)');
+    byId('detail-kicker').textContent = `> SERVICE DETAIL · ID ${safeText(task.id)}`;
+    byId('detail-title').textContent = serviceName;
+
+    const hosts = teams.map((team, index) => {
+      const teamName = safeText(team.team, `Tim ${index + 1}`);
+      const hostPort = `${safeText(team.ip)}:${ports}`;
+      return `<div class="host-row">
+        <div><span class="host-team" style="color:${teamColor(index)}">${esc(teamName)}</span><code class="copy-value">${esc(hostPort)}</code></div>
+        <button class="copy-button" type="button" data-copy-key="service-${esc(safeText(task.id))}-host-${esc(safeText(team.team_id, index))}" data-copy-value="${esc(hostPort)}">salin</button>
+      </div>`;
+    }).join('');
+
+    const teamRows = teams.map((team, index) => {
+      const service = serviceFor(team, task.id);
+      return `<tr>
+        <td style="color:${teamColor(index)}">${esc(safeText(team.team, `Tim ${index + 1}`))}</td>
+        <td>${statusHTML(service?.status)}</td>
+        <td>${esc(formatMaybe(service?.score))}</td>
+        <td>${esc(formatMaybe(service?.sla, '%'))}</td>
+        <td>${esc(formatMaybe(service?.stolen))}</td>
+        <td>${esc(formatMaybe(service?.lost))}</td>
+      </tr>`;
+    }).join('');
+
+    return `<section class="modal-section" aria-labelledby="service-hosts-title">
+      <h3 class="modal-section-title" id="service-hosts-title">&gt; HOST : PORT</h3>
+      <div class="host-list">${hosts || '<div class="modal-empty">belum ada data host</div>'}</div>
+    </section>
+    <section class="modal-section" aria-labelledby="checker-title">
+      <h3 class="modal-section-title" id="checker-title">&gt; CHECKER METADATA</h3>
+      <div class="metadata-grid">${metadata.map(([label, value]) => `<div class="metadata-item"><span class="metadata-label">${esc(label)}</span><strong class="metadata-value">${esc(safeText(value))}</strong></div>`).join('')}</div>
+    </section>
+    <section class="modal-section" aria-labelledby="blood-title">
+      <h3 class="modal-section-title" id="blood-title">&gt; FIRST BLOOD</h3>
+      ${blood
+        ? `<div class="first-blood-card"><strong>◆ FB</strong> oleh ${esc(safeText(blood.attacker))} · ${esc(formatDateTime(blood.submit_time))}</div>`
+        : '<div class="modal-empty">belum ada first blood</div>'}
+    </section>
+    <section class="modal-section" aria-labelledby="service-teams-title">
+      <h3 class="modal-section-title" id="service-teams-title">&gt; STATUS PER TIM</h3>
+      <div class="detail-table-wrap"><table class="detail-table">
+        <thead><tr><th>tim</th><th>status</th><th>skor</th><th>SLA</th><th>stolen</th><th>lost</th></tr></thead>
+        <tbody>${teamRows || '<tr><td colspan="6">belum ada data tim</td></tr>'}</tbody>
+      </table></div>
+    </section>
+    <section class="modal-section" aria-labelledby="service-attacks-title">
+      <h3 class="modal-section-title" id="service-attacks-title">&gt; SERANGAN TERBARU · ${attacks.length}</h3>
+      ${renderAttackMini(attacks, 'service')}
+    </section>`;
+  }
+
+  function renderOpenModal() {
+    const modal = byId('detail-modal');
+    if (modal.hidden || !state.modal.type || state.modal.closing) return;
+    const body = byId('modal-body');
+    const activeKey = document.activeElement?.dataset?.copyKey || '';
+    const scrollTop = body.scrollTop;
+    let content = '<div class="modal-empty">data tidak tersedia</div>';
+    byId('detail-dialog').style.setProperty('--accent', 'var(--system)');
+    byId('detail-kicker').textContent = '> DETAIL';
+    byId('detail-title').textContent = 'Data tidak tersedia';
+
+    if (state.modal.type === 'team') {
+      const teams = Array.isArray(state.scoreboard?.teams) ? state.scoreboard.teams : [];
+      const index = teams.findIndex(team => String(team.team_id) === String(state.modal.id));
+      if (index >= 0) content = renderTeamModal(teams[index], index);
+    } else if (state.modal.type === 'service') {
+      const tasks = Array.isArray(state.scoreboard?.tasks) ? state.scoreboard.tasks : [];
+      const task = tasks.find(item => String(item.id) === String(state.modal.id));
+      if (task) content = renderServiceModal(task);
+    }
+
+    body.innerHTML = content;
+    body.scrollTop = scrollTop;
+    if (activeKey) {
+      const replacement = [...body.querySelectorAll('[data-copy-key]')]
+        .find(element => element.dataset.copyKey === activeKey);
+      replacement?.focus();
+    }
+  }
+
+  function openDetail(type, id, trigger) {
+    const modal = byId('detail-modal');
+    const origin = trigger.closest('#hero-grid')
+      ? 'hero'
+      : type === 'team' ? 'matrix-team' : 'matrix-service';
+    state.modal = { type, id: String(id), trigger, origin, closing: false };
+    modal.hidden = false;
+    document.body.classList.add('modal-open');
+    renderOpenModal();
+    window.requestAnimationFrame(() => {
+      modal.classList.add('is-open');
+      byId('modal-close').focus();
+    });
+  }
+
+  function closeDetail() {
+    const modal = byId('detail-modal');
+    if (modal.hidden || state.modal.closing) return;
+    const restoreTarget = state.modal.trigger;
+    const restoreId = state.modal.id;
+    const restoreOrigin = state.modal.origin;
+    state.modal.closing = true;
+    modal.classList.remove('is-open');
+    const finish = () => {
+      modal.hidden = true;
+      document.body.classList.remove('modal-open');
+      state.modal = { type: null, id: null, trigger: null, origin: null, closing: false };
+      let currentTarget = restoreTarget?.isConnected ? restoreTarget : null;
+      if (!currentTarget) {
+        const selector = restoreOrigin === 'hero'
+          ? '#hero-grid [data-team-id]'
+          : restoreOrigin === 'matrix-team' ? '#matrix-wrap [data-team-id]' : '#matrix-wrap [data-service-id]';
+        currentTarget = [...document.querySelectorAll(selector)].find(element => {
+          const value = restoreOrigin === 'matrix-service' ? element.dataset.serviceId : element.dataset.teamId;
+          return value === restoreId;
+        });
+      }
+      currentTarget?.focus();
+    };
+    window.setTimeout(finish, reducedMotion.matches ? 0 : 180);
+  }
+
+  async function copyText(value) {
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(value);
+        return true;
+      } catch { /* lanjut ke fallback untuk HTTP biasa */ }
+    }
+    const textarea = document.createElement('textarea');
+    textarea.value = value;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    let copied = false;
+    try { copied = document.execCommand('copy'); } catch { copied = false; }
+    textarea.remove();
+    return copied;
+  }
+
+  function defenseTarget() {
+    const teams = Array.isArray(state.scoreboard?.teams) ? state.scoreboard.teams : [];
+    const highlighted = teams.find(team => Boolean(team.highlighted));
+    if (highlighted) return { name: safeText(highlighted.team), fallback: false };
+    if (teams.length) return { name: safeText(teams[0].team), fallback: true };
+    return { name: '', fallback: true };
+  }
+
+  function setAttackMode(mode) {
+    state.attackMode = mode === 'defense' ? 'defense' : 'attacks';
+    byId('mode-attacks').setAttribute('aria-pressed', String(state.attackMode === 'attacks'));
+    byId('mode-defense').setAttribute('aria-pressed', String(state.attackMode === 'defense'));
+    renderAttacks();
+  }
+
+  function renderAttacks() {
+    const host = byId('attack-feed');
+    const target = defenseTarget();
+    const rows = state.attackMode === 'defense'
+      ? state.attacks.filter(row => safeText(row?.victim, '') === target.name)
+      : state.attacks;
+
+    if (state.attackMode === 'defense') {
+      byId('feed-target').textContent = target.name
+        ? `target pertahanan: ${target.name}${target.fallback ? ' · fallback peringkat #1' : ' · tim kita'}`
+        : 'target pertahanan belum tersedia';
+    } else {
+      byId('feed-target').textContent = 'semua aktivitas · terbaru di atas';
+    }
+
+    if (!rows.length) {
+      host.innerHTML = `<div class="empty">${state.attackMode === 'defense'
+        ? 'belum ada serangan ke target pertahanan'
+        : 'belum ada serangan'}</div>`;
+      return;
+    }
+
+    host.innerHTML = rows.map(row => {
+      const key = attackKey(row);
+      const attacker = safeText(row?.attacker);
+      const victim = safeText(row?.victim);
+      const service = safeText(row?.service);
+      const fresh = state.freshAttacks.has(key);
+      return `<div class="attack-row${fresh ? ' is-new' : ''}" style="--attacker-color:${teamColorByName(attacker)}">
+        <time class="attack-time" datetime="${esc(row?.submit_time)}">${formatTime(row?.submit_time)}</time>
+        <span class="combatant" style="color:${teamColorByName(attacker)}" title="${esc(attacker)}">${esc(attacker)}</span>
+        <span class="attack-arrow" aria-label="menyerang">→</span>
+        <span class="combatant" style="color:${teamColorByName(victim)}" title="${esc(victim)}">${esc(victim)}</span>
+        <span class="attack-service" title="${esc(service)}">${esc(service)}<span class="attack-round">flag R${safeInt(row?.flag_round)}</span></span>
+      </div>`;
+    }).join('');
+  }
+
+  function updateAttacks(rows) {
+    const attacks = Array.isArray(rows) ? rows : [];
+    const initial = state.seenAttacks.size === 0;
+    const incomingKeys = new Set(attacks.map(attackKey));
+    state.freshAttacks = initial
+      ? new Set()
+      : new Set([...incomingKeys].filter(key => !state.seenAttacks.has(key)));
+    incomingKeys.forEach(key => { state.seenAttacks.add(key); });
+    state.attacks = attacks;
+    renderAttacks();
+    renderOpenModal();
+    if (state.freshAttacks.size) {
+      window.setTimeout(() => {
+        state.freshAttacks.clear();
+        renderAttacks();
+      }, 5200);
+    }
+  }
+
+  function renderTimeline() {
+    const chart = byId('chart');
+    const legend = byId('timeline-legend');
+    const rows = Array.isArray(state.timeline) ? state.timeline : [];
+    if (!rows.length) {
+      legend.innerHTML = '';
+      chart.innerHTML = '<div class="empty">belum ada data timeline</div>';
+      byId('timeline-meta').textContent = '0 titik data';
+      return;
+    }
+
+    const W = 1200;
+    const H = 330;
+    const P = { left: 62, right: 216, top: 24, bottom: 42 };
+    const byTeam = new Map();
+    const allScores = [];
+    const allRounds = [];
+
+    rows.forEach(row => {
+      const teamId = safeText(row?.team_id, 'unknown');
+      if (!byTeam.has(teamId)) byTeam.set(teamId, { name: safeText(row?.team, 'Tim'), points: [] });
+      const round = safeNumber(row?.round);
+      const score = safeNumber(row?.score);
+      byTeam.get(teamId).points.push([round, score]);
+      allRounds.push(round);
+      allScores.push(score);
+    });
+
+    if (!byTeam.size) {
+      legend.innerHTML = '';
+      chart.innerHTML = '<div class="empty">belum ada data timeline</div>';
+      return;
+    }
+
+    const minRound = Math.min(...allRounds);
+    const maxRound = Math.max(...allRounds);
+    const minScore = Math.min(0, ...allScores);
+    let maxScore = Math.max(0, ...allScores);
+    if (minScore === maxScore) maxScore = minScore + 1;
+    const plotWidth = W - P.left - P.right;
+    const plotHeight = H - P.top - P.bottom;
+    const x = round => minRound === maxRound
+      ? P.left + plotWidth / 2
+      : P.left + ((round - minRound) / (maxRound - minRound)) * plotWidth;
+    const y = score => P.top + ((maxScore - score) / (maxScore - minScore)) * plotHeight;
+
+    const yTicks = Array.from({ length: 5 }, (_, index) => {
+      const fraction = index / 4;
+      const value = maxScore - ((maxScore - minScore) * fraction);
+      const yy = P.top + plotHeight * fraction;
+      return `<line x1="${P.left}" y1="${yy.toFixed(1)}" x2="${W - P.right}" y2="${yy.toFixed(1)}" stroke="var(--grid)" stroke-width="1" />
+        <text class="axis-label" x="${P.left - 10}" y="${(yy + 3).toFixed(1)}" text-anchor="end">${esc(formatCompact(value))}</text>`;
+    }).join('');
+
+    const desiredXTicks = Math.min(7, Math.max(1, Math.round(maxRound - minRound) + 1));
+    const tickRounds = [...new Set(Array.from({ length: desiredXTicks }, (_, index) => {
+      if (desiredXTicks === 1) return minRound;
+      return Math.round(minRound + ((maxRound - minRound) * index / (desiredXTicks - 1)));
+    }))];
+    const xTicks = tickRounds.map(round => {
+      const xx = x(round);
+      return `<line x1="${xx.toFixed(1)}" y1="${H - P.bottom}" x2="${xx.toFixed(1)}" y2="${H - P.bottom + 5}" stroke="var(--muted)" />
+        <text class="axis-label" x="${xx.toFixed(1)}" y="${H - 17}" text-anchor="middle">R${safeInt(round)}</text>`;
+    }).join('');
+
+    const series = [...byTeam.entries()].map(([teamId, team]) => {
+      const points = team.points.sort((a, b) => a[0] - b[0]);
+      const last = points[points.length - 1];
+      return { teamId, name: team.name, points, last, color: teamColor(teamIndexById(teamId)), labelY: y(last[1]) };
+    });
+
+    const sortedLabels = [...series].sort((a, b) => a.labelY - b.labelY);
+    const minGap = 19;
+    sortedLabels.forEach((item, index) => {
+      const floor = index === 0 ? P.top + 5 : sortedLabels[index - 1].labelY + minGap;
+      item.labelY = Math.max(item.labelY, floor);
+    });
+    for (let index = sortedLabels.length - 1; index >= 0; index -= 1) {
+      const ceiling = index === sortedLabels.length - 1
+        ? H - P.bottom - 4
+        : sortedLabels[index + 1].labelY - minGap;
+      sortedLabels[index].labelY = Math.min(sortedLabels[index].labelY, ceiling);
+    }
+
+    const paths = series.map(item => {
+      const path = item.points.map((point, index) => `${index ? 'L' : 'M'}${x(point[0]).toFixed(1)},${y(point[1]).toFixed(1)}`).join(' ');
+      const endX = x(item.last[0]);
+      const endY = y(item.last[1]);
+      const label = sortedLabels.find(entry => entry.teamId === item.teamId);
+      return `<path d="${path}" fill="none" stroke="${item.color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+        <circle cx="${endX.toFixed(1)}" cy="${endY.toFixed(1)}" r="5" fill="var(--surface)" stroke="${item.color}" stroke-width="3" />
+        <path d="M${(endX + 7).toFixed(1)},${endY.toFixed(1)} L${(W - P.right + 10).toFixed(1)},${label.labelY.toFixed(1)}" fill="none" stroke="${item.color}" stroke-width="1" opacity="0.55" />
+        <text class="end-label" x="${W - P.right + 16}" y="${(label.labelY + 3).toFixed(1)}" fill="${item.color}">${esc(item.name)} · ${esc(formatNumber(item.last[1]))}</text>`;
+    }).join('');
+
+    const roundDescription = minRound === maxRound ? `ronde ${safeInt(minRound)}` : `ronde ${safeInt(minRound)} sampai ${safeInt(maxRound)}`;
+    chart.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Timeline skor ${byTeam.size} tim, ${esc(roundDescription)}">
+      ${yTicks}
+      <line x1="${P.left}" y1="${H - P.bottom}" x2="${W - P.right}" y2="${H - P.bottom}" stroke="var(--muted)" stroke-width="1" />
+      ${xTicks}${paths}
+    </svg>`;
+
+    const rankedTeams = Array.isArray(state.scoreboard?.teams) ? state.scoreboard.teams : [];
+    legend.innerHTML = series.map(item => {
+      const index = rankedTeams.findIndex(team => String(team.team_id) === String(item.teamId));
+      const color = item.color;
+      return `<span class="legend-team" style="--team:${color}"><i class="legend-swatch" aria-hidden="true"></i>${esc(item.name)}${index >= 0 ? ` · #${safeInt(rankedTeams[index].pos, index + 1)}` : ''}</span>`;
+    }).join('');
+    byId('timeline-meta').textContent = `${rows.length} titik · ${roundDescription}`;
+  }
+
+  function applyScoreboard(payload) {
+    const tasks = Array.isArray(payload?.tasks) ? payload.tasks : [];
+    const teams = Array.isArray(payload?.teams) ? payload.teams : [];
+    state.scoreboard = { tasks, teams };
+    renderHeroes();
+    renderMatrix();
+    renderAttacks();
+    renderOpenModal();
+  }
+
+  async function tick() {
+    try {
+      const results = await Promise.allSettled([
+        fetchJSON('/api/game'),
+        fetchJSON('/api/scoreboard'),
+        fetchJSON('/api/attacks?limit=40'),
+        fetchJSON('/api/timeline'),
+        fetchJSON('/api/firstblood')
+      ]);
+      const failed = results.some(result => result.status === 'rejected');
+      setStale(failed);
+
+      if (results[0].status === 'fulfilled') renderGame(results[0].value);
+      if (results[4].status === 'fulfilled') {
+        state.firstblood = results[4].value && typeof results[4].value === 'object' ? results[4].value : {};
+        renderOpenModal();
+      }
+      if (results[1].status === 'fulfilled') applyScoreboard(results[1].value);
+      else if (results[4].status === 'fulfilled' && state.scoreboard) renderMatrix();
+      if (results[2].status === 'fulfilled') updateAttacks(results[2].value);
+      if (results[3].status === 'fulfilled') {
+        state.timeline = Array.isArray(results[3].value) ? results[3].value : [];
+        renderTimeline();
+      }
+
+      if (!failed) pulseLive();
+    } catch {
+      setStale(true);
+    }
+  }
+
+  byId('mode-attacks').addEventListener('click', () => setAttackMode('attacks'));
+  byId('mode-defense').addEventListener('click', () => setAttackMode('defense'));
+  byId('hero-grid').addEventListener('click', event => {
+    const trigger = event.target.closest('[data-team-id]');
+    if (trigger) openDetail('team', trigger.dataset.teamId, trigger);
   });
-}
-
-async function tick() {
-  try {
-    await refreshGame();
-    const ranked = await refreshBoard();
-    await refreshAttacks();
-    drawTimeline(ranked);
-  } catch (e) { /* biarkan tampilan lama saat glitch sesaat */ }
-}
-tick();
-setInterval(tick, 5000);
+  byId('matrix-wrap').addEventListener('click', event => {
+    const teamTrigger = event.target.closest('[data-team-id]');
+    const serviceTrigger = event.target.closest('[data-service-id]');
+    if (teamTrigger) openDetail('team', teamTrigger.dataset.teamId, teamTrigger);
+    else if (serviceTrigger) openDetail('service', serviceTrigger.dataset.serviceId, serviceTrigger);
+  });
+  byId('modal-close').addEventListener('click', closeDetail);
+  byId('detail-modal').addEventListener('click', event => {
+    if (event.target === byId('detail-modal')) closeDetail();
+  });
+  byId('modal-body').addEventListener('click', async event => {
+    const button = event.target.closest('.copy-button');
+    if (!button) return;
+    const original = button.textContent;
+    const copied = await copyText(button.dataset.copyValue || '');
+    if (!button.isConnected) return;
+    button.textContent = copied ? 'tersalin' : 'gagal';
+    button.classList.toggle('copied', copied);
+    window.setTimeout(() => {
+      if (!button.isConnected) return;
+      button.textContent = original;
+      button.classList.remove('copied');
+    }, 1400);
+  });
+  document.addEventListener('keydown', event => {
+    const modal = byId('detail-modal');
+    if (modal.hidden) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeDetail();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const focusable = [...byId('detail-dialog').querySelectorAll('button:not([disabled]), [href], input:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+      .filter(element => element.getClientRects().length > 0);
+    if (!focusable.length) {
+      event.preventDefault();
+      byId('detail-dialog').focus();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
+  window.requestAnimationFrame(updateRoundProgress);
+  tick();
+  window.setInterval(tick, 5000);
+})();
 </script>
 </body>
 </html>

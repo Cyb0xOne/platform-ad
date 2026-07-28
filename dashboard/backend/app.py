@@ -30,6 +30,22 @@ app = FastAPI(title='AD Dashboard', docs_url='/api/docs')
 # Status ForcAD (backend/lib/models/types.py) -> label ringkas untuk UI.
 STATUS = {101: 'UP', 102: 'CORRUPT', 103: 'MUMBLE', 104: 'DOWN', 110: 'ERROR', -1: 'N/A'}
 
+# Tabel `tasks` ForcAD tidak punya kolom port, jadi peta ini dirawat manual —
+# sumber kebenaran `docker ps` di VM tim, perbarui saat roster berubah.
+# String (bukan int) karena ada rentang & ganda; protokol sengaja tidak disimpan.
+SERVICE_PORTS = {
+    'example': '10000',
+    'greple': '7770-7778',
+    'd3pl0y': '2553',
+    'flagdrive': '4859',
+    'signmemaybe': '1984',
+    'funsplash': '1337',
+    'superregister': '6767',
+    'inbox': '1234, 4321',
+    'overeats': '5432',
+    'leet-date': '6789',
+}
+
 
 @contextmanager
 def cursor():
@@ -61,10 +77,14 @@ def game():
 def scoreboard():
     """Ranking tim + rincian per service (grid utama)."""
     with cursor() as cur:
-        cur.execute('SELECT id, name FROM tasks ORDER BY id')
-        tasks = cur.fetchall()
         cur.execute(
-            '''SELECT tt.team_id, tm.name AS team, tm.highlighted,
+            '''SELECT id, name, checker_type, checker_timeout,
+                      puts, gets, places, get_period, default_score
+               FROM tasks ORDER BY id'''
+        )
+        tasks = [dict(t, ports=SERVICE_PORTS.get(t['name'], '?')) for t in cur.fetchall()]
+        cur.execute(
+            '''SELECT tt.team_id, tm.name AS team, tm.highlighted, tm.ip, tm.token,
                       tt.task_id, tt.status, tt.score, tt.stolen, tt.lost,
                       tt.checks, tt.checks_passed
                FROM teamtasks tt JOIN teams tm ON tm.id = tt.team_id'''
@@ -75,7 +95,8 @@ def scoreboard():
     for r in rows:
         t = teams.setdefault(r['team_id'], {
             'team_id': r['team_id'], 'team': r['team'],
-            'highlighted': r['highlighted'], 'total': 0.0, 'services': {},
+            'highlighted': r['highlighted'], 'ip': r['ip'], 'token': r['token'],
+            'total': 0.0, 'services': {},
         })
         # Total = Σ(score × SLA), formula ctftime resmi ForcAD
         # (backend/lib/storage/game.py:construct_ctftime_scoreboard). Skor mentah
@@ -108,6 +129,30 @@ def attacks(limit: int = 50):
                JOIN tasks t   ON t.id  = f.task_id
                ORDER BY sf.submit_time DESC LIMIT %s''', (limit,))
         return [dict(r, submit_time=r['submit_time'].isoformat()) for r in cur.fetchall()]
+
+
+@app.get('/api/firstblood')
+def firstblood():
+    """Pencuri pertama tiap service (first blood), dikunci per task_id.
+
+    DISTINCT ON (postgres) mengambil baris paling awal per task setelah diurutkan
+    submit_time menaik — satu query, tanpa subquery/window. Dikembalikan sebagai
+    map task_id -> {attacker, submit_time} supaya frontend cukup lookup, bukan scan.
+    """
+    with cursor() as cur:
+        cur.execute(
+            '''SELECT DISTINCT ON (f.task_id)
+                      f.task_id, att.name AS attacker, sf.submit_time
+               FROM stolenflags sf
+               JOIN flags f   ON f.id  = sf.flag_id
+               JOIN teams att ON att.id = sf.attacker_id
+               ORDER BY f.task_id, sf.submit_time ASC'''
+        )
+        return {
+            r['task_id']: {'attacker': r['attacker'],
+                           'submit_time': r['submit_time'].isoformat()}
+            for r in cur.fetchall()
+        }
 
 
 @app.get('/api/timeline')
