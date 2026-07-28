@@ -1,9 +1,16 @@
-"""Dashboard A/D custom — backend read-only ke Postgres ForcAD.
+"""Dashboard A/D custom — backend ke Postgres ForcAD.
 
-Prinsip: dashboard TIDAK PERNAH menulis ke DB engine. Semua endpoint SELECT.
-Aksi kontrol (start/stop ronde dsb.) baru ditambahkan di Fase 4 lewat mekanisme
-resmi ForcAD (control.py), bukan lewat UPDATE langsung — menulis mentah ke
-tabel engine berisiko mengorupsi state permainan.
+Prinsip: dashboard TIDAK PERNAH menulis ke DB engine. Semua endpoint DB adalah
+SELECT. Aksi kontrol (start/stop ronde dsb.) baru ditambahkan di Fase 4 lewat
+mekanisme resmi ForcAD (control.py), bukan lewat UPDATE langsung — menulis mentah
+ke tabel engine berisiko mengorupsi state permainan.
+
+Pengecualian sadar: POST /api/team/{id}/authorized_key menulis ke VULNBOX (bukan
+ke DB engine) untuk menitipkan pubkey peserta. Platform ini dipakai untuk latihan
+dan debug pembangunan A/D, dan dashboard TIDAK punya autentikasi — artinya siapa
+pun yang menjangkau :8090 bisa memberi dirinya akses root ke vulnbox mana pun.
+Trade-off ini diterima secara sadar untuk konteks lab; jangan bawa endpoint ini
+ke lingkungan kompetisi tanpa memasang auth lebih dulu.
 
 Sumber data (tabel ForcAD):
   teams, tasks            — daftar tim & service
@@ -14,16 +21,21 @@ Sumber data (tabel ForcAD):
 """
 
 import os
+import re
+import subprocess
 from contextlib import contextmanager
 
 import psycopg2
 import psycopg2.extras
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 DSN = os.environ['FORCAD_DSN']  # postgresql://user:pass@host:5432/forcad
 FRONTEND = os.path.join(os.path.dirname(__file__), 'static')
+VM_SSH_KEY = os.environ.get('VM_SSH_KEY', '/secrets/vmkey')
+VM_SSH_USER = os.environ.get('VM_SSH_USER', 'reky')
 
 app = FastAPI(title='AD Dashboard', docs_url='/api/docs')
 
@@ -169,6 +181,66 @@ def timeline():
                GROUP BY l.round, l.team_id, tm.name ORDER BY l.round'''
         )
         return [dict(r, score=round(r['score'], 1)) for r in cur.fetchall()]
+
+
+# Hanya tipe kunci yang dipakai OpenSSH modern; baris baru tidak akan pernah lolos
+# sehingga input tidak bisa menyelundupkan kunci kedua atau opsi authorized_keys
+# (mis. command=/from=) yang mengubah arti berkas.
+PUBKEY_RE = re.compile(
+    r'(?:ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp(?:256|384|521)) '
+    r'[A-Za-z0-9+/]{32,1024}={0,3}'
+    r'(?: [\w@.\-]{1,64})?'
+)
+
+
+class AuthorizedKey(BaseModel):
+    key: str
+
+
+@app.post('/api/team/{team_id}/authorized_key')
+def add_authorized_key(team_id: int, body: AuthorizedKey):
+    """Titipkan pubkey peserta ke vulnbox tim agar bisa SSH sendiri."""
+    key = body.key.strip()
+    if not PUBKEY_RE.fullmatch(key):
+        raise HTTPException(
+            status_code=400,
+            detail='Format public key tidak dikenali. Tempel isi berkas .pub '
+                   '(mis. ssh-ed25519 AAAA... nama), satu baris.',
+        )
+
+    with cursor() as cur:
+        cur.execute('SELECT name, ip FROM teams WHERE id = %s', (team_id,))
+        team = cur.fetchone()
+    if not team:
+        raise HTTPException(status_code=404, detail='Tim tidak ditemukan.')
+
+    # Kunci dikirim lewat STDIN, tidak pernah disisipkan ke string perintah, jadi
+    # tidak ada jalur command injection walau regex di atas suatu saat dilonggarkan.
+    # sort -u membuat pemasangan ulang kunci yang sama tidak menumpuk.
+    remote = (
+        'export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; '
+        'mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && '
+        'sort -u -o ~/.ssh/authorized_keys ~/.ssh/authorized_keys && '
+        'chmod 600 ~/.ssh/authorized_keys && wc -l < ~/.ssh/authorized_keys'
+    )
+    try:
+        proc = subprocess.run(
+            ['ssh', '-i', VM_SSH_KEY, '-o', 'BatchMode=yes',
+             '-o', 'StrictHostKeyChecking=no', '-o', 'IdentitiesOnly=yes',
+             '-o', 'ConnectTimeout=8', f'{VM_SSH_USER}@{team["ip"]}', remote],
+            input=key + '\n', capture_output=True, text=True, timeout=25,
+        )
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=504, detail='Vulnbox tidak merespons.')
+    if proc.returncode != 0:
+        raise HTTPException(
+            status_code=502,
+            detail=f'Gagal memasang kunci di {team["ip"]}: {proc.stderr.strip()[:200]}',
+        )
+    return {
+        'ok': True, 'team': team['name'], 'ip': team['ip'],
+        'user': VM_SSH_USER, 'total_keys': proc.stdout.strip(),
+    }
 
 
 @app.get('/api/health')

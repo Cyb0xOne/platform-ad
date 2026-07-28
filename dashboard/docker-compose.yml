@@ -15,6 +15,10 @@ services:
     env_file: .env
     ports:
       - "8090:8000"
+    volumes:
+      # Kunci SSH dashboard -> vulnbox (endpoint authorized_key).
+      # Read-only, tidak ikut ke image maupun repo.
+      - ./secrets/vmkey:/secrets/vmkey:ro
     networks: [forcad_default]
 
 networks:

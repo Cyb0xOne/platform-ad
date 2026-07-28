@@ -1079,6 +1079,126 @@
     color: var(--positive);
   }
 
+  .ssh-key-form {
+    display: grid;
+    gap: var(--space-3);
+    margin-top: var(--space-2);
+    padding: var(--space-4);
+    border: 1px solid rgba(250, 178, 25, 0.42);
+    border-left: 3px solid var(--warning);
+    border-radius: var(--radius-md);
+    background: rgba(250, 178, 25, 0.055);
+  }
+
+  .ssh-action-title {
+    display: block;
+    color: var(--warning);
+    font-size: var(--fs-sm);
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .ssh-action-copy,
+  .ssh-key-help {
+    margin: var(--space-1) 0 0;
+    color: var(--ink-2);
+    font-size: var(--fs-xs);
+    text-wrap: pretty;
+  }
+
+  .ssh-key-label {
+    color: var(--ink);
+    font-size: var(--fs-sm);
+    font-weight: 800;
+  }
+
+  .ssh-key-input {
+    width: 100%;
+    min-height: 112px;
+    resize: vertical;
+    padding: var(--space-3);
+    border: 1px solid var(--ring-bright);
+    border-radius: var(--radius-md);
+    background: var(--plane);
+    color: var(--ink);
+    font: var(--fs-sm)/1.5 var(--font-mono);
+    caret-color: var(--system);
+    transition-property: border-color, box-shadow, opacity;
+    transition-duration: 150ms;
+    transition-timing-function: var(--ease-out);
+  }
+
+  .ssh-key-input::placeholder { color: var(--muted); }
+
+  .ssh-key-input:focus {
+    outline: 2px solid var(--system);
+    outline-offset: 2px;
+    border-color: var(--system);
+  }
+
+  .ssh-key-input[aria-invalid="true"] {
+    border-color: var(--negative);
+    box-shadow: 0 0 0 1px rgba(255, 109, 100, 0.24);
+  }
+
+  .ssh-key-input:disabled { opacity: 0.56; cursor: wait; }
+
+  .ssh-form-footer {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-4);
+  }
+
+  .ssh-key-help { max-width: 650px; }
+
+  .ssh-submit {
+    min-width: 142px;
+    min-height: 44px;
+    padding: var(--space-2) var(--space-4);
+    border: 1px solid var(--warning);
+    border-radius: var(--radius-sm);
+    background: var(--warning);
+    color: var(--plane);
+    cursor: pointer;
+    font-size: var(--fs-sm);
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    transition-property: background-color, border-color, color, transform, opacity;
+    transition-duration: 150ms;
+    transition-timing-function: var(--ease-out);
+  }
+
+  .ssh-submit:active { transform: scale(0.96); }
+
+  .ssh-submit:disabled {
+    border-color: var(--ring);
+    background: var(--track);
+    color: var(--muted);
+    cursor: not-allowed;
+    opacity: 0.72;
+  }
+
+  .ssh-key-status {
+    min-height: calc(var(--fs-xs) * 1.5);
+    color: var(--muted);
+    font-size: var(--fs-xs);
+    overflow-wrap: anywhere;
+  }
+
+  .ssh-key-status.loading { color: var(--warning); }
+  .ssh-key-status.success { color: var(--positive); }
+  .ssh-key-status.error { color: var(--negative); }
+
+  .ssh-command {
+    display: block;
+    margin-top: var(--space-1);
+    color: var(--ink);
+    font-size: var(--fs-sm);
+    user-select: all;
+  }
+
   .modal-stats {
     display: grid;
     grid-template-columns: repeat(5, minmax(120px, 1fr));
@@ -1295,6 +1415,8 @@
     .credential-row,
     .host-row { grid-template-columns: 1fr; }
     .copy-button { width: 100%; }
+    .ssh-form-footer { align-items: stretch; flex-direction: column; }
+    .ssh-submit { width: 100%; }
   }
 
   @media (hover: hover) and (pointer: fine) {
@@ -1319,7 +1441,9 @@
     .modal-backdrop,
     .detail-dialog,
     .modal-close,
-    .copy-button { transition-duration: 0.001ms; }
+    .copy-button,
+    .ssh-key-input,
+    .ssh-submit { transition-duration: 0.001ms; }
     .round-progress.indeterminate .progress-fill { transform: translateX(95%); }
     .modal-backdrop .detail-dialog,
     .rank-card:hover { transform: none; }
@@ -1460,7 +1584,16 @@
     roundStartedAt: null,
     roundStartKnown: false,
     stale: false,
-    modal: { type: null, id: null, trigger: null, origin: null, closing: false }
+    modal: { type: null, id: null, trigger: null, origin: null, closing: false },
+    sshKeyForm: {
+      teamId: null,
+      value: '',
+      phase: 'idle',
+      message: '',
+      command: '',
+      invalid: false,
+      requestId: 0
+    }
   };
 
   const byId = id => document.getElementById(id);
@@ -1470,9 +1603,13 @@
   };
   const safeInt = (value, fallback = 0) => Math.trunc(safeNumber(value, fallback));
   const safeText = (value, fallback = '–') => value === null || value === undefined || value === '' ? fallback : String(value);
-  const esc = value => safeText(value).replace(/[&<>"']/g, char => ({
+  const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   })[char]);
+  const esc = value => escapeHtml(safeText(value));
+  // Tanpa fallback '–': dipakai untuk isi kolom input, yang saat kosong harus
+  // benar-benar kosong, bukan berisi tanda pisah yang harus dihapus user dulu.
+  const escValue = value => escapeHtml(value ?? '');
   const formatNumber = value => numberFormat.format(safeNumber(value));
   const formatCompact = value => compactFormat.format(safeNumber(value));
   const formatMaybe = (value, suffix = '') => value === null || value === undefined || value === ''
@@ -1755,6 +1892,46 @@
     </div>`;
   }
 
+  function resetSshKeyForm(teamId) {
+    state.sshKeyForm = {
+      teamId: String(teamId),
+      value: '',
+      phase: 'idle',
+      message: '',
+      command: '',
+      invalid: false,
+      requestId: state.sshKeyForm.requestId + 1
+    };
+  }
+
+  function ensureSshKeyForm(teamId) {
+    if (state.sshKeyForm.teamId !== String(teamId)) resetSshKeyForm(teamId);
+    return state.sshKeyForm;
+  }
+
+  function sshKeyFormHTML(team, teamName) {
+    const form = ensureSshKeyForm(team.team_id);
+    const loading = form.phase === 'loading';
+    const disabled = loading || !form.value.trim();
+    const statusRole = form.phase === 'error' ? 'alert' : 'status';
+    const statusContent = form.message
+      ? `${esc(form.message)}${form.command ? `<code class="ssh-command">${esc(form.command)}</code>` : ''}`
+      : '';
+    return `<form class="ssh-key-form" id="ssh-key-form" data-team-id="${esc(safeText(team.team_id))}" novalidate>
+      <div>
+        <strong class="ssh-action-title">Tambah SSH public key</strong>
+        <p class="ssh-action-copy">Key akan dipasang ke <code>authorized_keys</code> vulnbox ${esc(teamName)} (${esc(safeText(team.ip))}) hanya setelah tombol Tambah key ditekan.</p>
+      </div>
+      <label class="ssh-key-label" for="ssh-public-key">SSH public key</label>
+      <textarea class="ssh-key-input" id="ssh-public-key" name="key" rows="4" placeholder="ssh-ed25519 AAAAC3NzaC1... nama@laptop" aria-describedby="ssh-key-help ssh-key-status" aria-invalid="${String(form.invalid)}" autocomplete="off" autocapitalize="off" spellcheck="false"${loading ? ' disabled' : ''}>${escValue(form.value)}</textarea>
+      <div class="ssh-form-footer">
+        <p class="ssh-key-help" id="ssh-key-help">Tempel isi <code>~/.ssh/id_ed25519.pub</code> dalam satu baris. Tekan Ctrl+Enter atau Cmd+Enter untuk mengirim.</p>
+        <button class="ssh-submit" id="ssh-key-submit" type="submit"${disabled ? ' disabled' : ''}>${loading ? 'Memasang...' : 'Tambah key'}</button>
+      </div>
+      <div class="ssh-key-status ${esc(form.phase)}" id="ssh-key-status" role="${statusRole}" aria-live="polite">${statusContent}</div>
+    </form>`;
+  }
+
   function renderAttackMini(rows, mode) {
     if (!rows.length) return '<div class="modal-empty">belum ada aktivitas</div>';
     return `<div class="attack-mini-list">${rows.slice(0, 8).map(row => {
@@ -1802,6 +1979,7 @@
         ${copyRow('IP address', team.ip, `team-${safeText(team.team_id)}-ip`)}
         ${copyRow('Team token', team.token, `team-${safeText(team.team_id)}-token`)}
       </div>
+      ${sshKeyFormHTML(team, teamName)}
     </section>
     <section class="modal-section" aria-label="Ringkasan tim">
       <div class="modal-stats">
@@ -1900,6 +2078,13 @@
     if (modal.hidden || !state.modal.type || state.modal.closing) return;
     const body = byId('modal-body');
     const activeKey = document.activeElement?.dataset?.copyKey || '';
+    const activeSshInput = document.activeElement?.id === 'ssh-public-key'
+      ? {
+          start: document.activeElement.selectionStart,
+          end: document.activeElement.selectionEnd,
+          direction: document.activeElement.selectionDirection
+        }
+      : null;
     const scrollTop = body.scrollTop;
     let content = '<div class="modal-empty">data tidak tersedia</div>';
     byId('detail-dialog').style.setProperty('--accent', 'var(--system)');
@@ -1922,6 +2107,12 @@
       const replacement = [...body.querySelectorAll('[data-copy-key]')]
         .find(element => element.dataset.copyKey === activeKey);
       replacement?.focus();
+    } else if (activeSshInput) {
+      const replacement = byId('ssh-public-key');
+      if (replacement && !replacement.disabled) {
+        replacement.focus();
+        replacement.setSelectionRange(activeSshInput.start, activeSshInput.end, activeSshInput.direction);
+      }
     }
   }
 
@@ -1985,6 +2176,87 @@
     try { copied = document.execCommand('copy'); } catch { copied = false; }
     textarea.remove();
     return copied;
+  }
+
+  async function submitSshKey(teamId) {
+    const form = ensureSshKeyForm(teamId);
+    const rawKey = form.value;
+    const key = rawKey.trim();
+
+    if (!key) {
+      Object.assign(form, {
+        phase: 'error',
+        message: 'SSH public key wajib diisi.',
+        command: '',
+        invalid: true
+      });
+      renderOpenModal();
+      byId('ssh-public-key')?.focus();
+      return;
+    }
+    if (/\r|\n/.test(rawKey)) {
+      Object.assign(form, {
+        phase: 'error',
+        message: 'Tempel SSH public key dalam SATU baris tanpa newline.',
+        command: '',
+        invalid: true
+      });
+      renderOpenModal();
+      byId('ssh-public-key')?.focus();
+      return;
+    }
+
+    const requestId = form.requestId + 1;
+    Object.assign(form, {
+      phase: 'loading',
+      message: 'Memasang key ke vulnbox...',
+      command: '',
+      invalid: false,
+      requestId
+    });
+    renderOpenModal();
+
+    let response;
+    let payload = {};
+    try {
+      response = await fetch(`/api/team/${encodeURIComponent(teamId)}/authorized_key`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ key })
+      });
+      try { payload = await response.json(); } catch { payload = {}; }
+    } catch {
+      if (state.sshKeyForm.teamId !== String(teamId) || state.sshKeyForm.requestId !== requestId) return;
+      Object.assign(state.sshKeyForm, {
+        phase: 'error',
+        message: 'Gagal menghubungi server. Coba lagi.',
+        command: '',
+        invalid: true
+      });
+      renderOpenModal();
+      return;
+    }
+
+    if (state.sshKeyForm.teamId !== String(teamId) || state.sshKeyForm.requestId !== requestId) return;
+    if (!response.ok || payload?.ok !== true) {
+      Object.assign(state.sshKeyForm, {
+        phase: 'error',
+        message: typeof payload?.detail === 'string' ? payload.detail : 'Gagal menambahkan SSH public key.',
+        command: '',
+        invalid: true
+      });
+    } else {
+      const responseTeam = safeText(payload.team);
+      const responseIp = safeText(payload.ip);
+      Object.assign(state.sshKeyForm, {
+        value: '',
+        phase: 'success',
+        message: `Key terpasang di ${responseTeam} (${responseIp}) · total ${safeText(payload.total_keys)} key`,
+        command: `ssh ${safeText(payload.user)}@${responseIp}`,
+        invalid: false
+      });
+    }
+    renderOpenModal();
   }
 
   function defenseTarget() {
@@ -2241,6 +2513,36 @@
       button.classList.remove('copied');
     }, 1400);
   });
+  // Modal dirender ulang tiap refresh 5 detik dari state, jadi ketikan wajib
+  // disalin ke state; kalau tidak, isi textarea tersapu dan tombol kirim tidak
+  // pernah aktif. Listener dipasang di #modal-body yang tidak ikut diganti.
+  byId('modal-body').addEventListener('input', event => {
+    const field = event.target;
+    if (field?.id !== 'ssh-public-key') return;
+    state.sshKeyForm.value = field.value;
+    state.sshKeyForm.invalid = false;
+    field.setAttribute('aria-invalid', 'false');
+    const submit = byId('ssh-key-submit');
+    if (submit) {
+      submit.disabled = state.sshKeyForm.phase === 'loading' || !field.value.trim();
+    }
+  });
+  // Form ikut dibangun ulang tiap render, jadi listener harus didelegasikan ke
+  // #modal-body. Tanpa ini browser menjalankan submit GET bawaan dan public key
+  // ikut tertulis di URL serta riwayat peramban.
+  byId('modal-body').addEventListener('submit', event => {
+    const form = event.target.closest('#ssh-key-form');
+    if (!form) return;
+    event.preventDefault();
+    submitSshKey(form.dataset.teamId);
+  });
+  byId('modal-body').addEventListener('keydown', event => {
+    if (event.target?.id !== 'ssh-public-key') return;
+    if (event.key !== 'Enter' || !(event.ctrlKey || event.metaKey)) return;
+    event.preventDefault();
+    const form = event.target.closest('#ssh-key-form');
+    if (form && !byId('ssh-key-submit')?.disabled) submitSshKey(form.dataset.teamId);
+  });
   document.addEventListener('keydown', event => {
     const modal = byId('detail-modal');
     if (modal.hidden) return;
@@ -2250,7 +2552,7 @@
       return;
     }
     if (event.key !== 'Tab') return;
-    const focusable = [...byId('detail-dialog').querySelectorAll('button:not([disabled]), [href], input:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+    const focusable = [...byId('detail-dialog').querySelectorAll('button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])')]
       .filter(element => element.getClientRects().length > 0);
     if (!focusable.length) {
       event.preventDefault();
