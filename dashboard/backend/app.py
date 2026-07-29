@@ -20,6 +20,8 @@ Sumber data (tabel ForcAD):
   gameconfig              — ronde berjalan
 """
 
+import base64
+import hashlib
 import os
 import re
 import subprocess
@@ -35,7 +37,7 @@ from pydantic import BaseModel
 DSN = os.environ['FORCAD_DSN']  # postgresql://user:pass@host:5432/forcad
 FRONTEND = os.path.join(os.path.dirname(__file__), 'static')
 VM_SSH_KEY = os.environ.get('VM_SSH_KEY', '/secrets/vmkey')
-VM_SSH_USER = os.environ.get('VM_SSH_USER', 'reky')
+VM_SSH_USER = os.environ.get('VM_SSH_USER', 'team')
 
 app = FastAPI(title='AD Dashboard', docs_url='/api/docs')
 
@@ -183,6 +185,18 @@ def timeline():
         return [dict(r, score=round(r['score'], 1)) for r in cur.fetchall()]
 
 
+def _vm_ssh(ip, remote, stdin=None):
+    try:
+        return subprocess.run(
+            ['ssh', '-i', VM_SSH_KEY, '-o', 'BatchMode=yes',
+             '-o', 'StrictHostKeyChecking=no', '-o', 'IdentitiesOnly=yes',
+             '-o', 'ConnectTimeout=8', f'{VM_SSH_USER}@{ip}', remote],
+            input=stdin, capture_output=True, text=True, timeout=25,
+        )
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=504, detail='Vulnbox tidak merespons.')
+
+
 # Hanya tipe kunci yang dipakai OpenSSH modern; baris baru tidak akan pernah lolos
 # sehingga input tidak bisa menyelundupkan kunci kedua atau opsi authorized_keys
 # (mis. command=/from=) yang mengubah arti berkas.
@@ -223,15 +237,7 @@ def add_authorized_key(team_id: int, body: AuthorizedKey):
         'sort -u -o ~/.ssh/authorized_keys ~/.ssh/authorized_keys && '
         'chmod 600 ~/.ssh/authorized_keys && wc -l < ~/.ssh/authorized_keys'
     )
-    try:
-        proc = subprocess.run(
-            ['ssh', '-i', VM_SSH_KEY, '-o', 'BatchMode=yes',
-             '-o', 'StrictHostKeyChecking=no', '-o', 'IdentitiesOnly=yes',
-             '-o', 'ConnectTimeout=8', f'{VM_SSH_USER}@{team["ip"]}', remote],
-            input=key + '\n', capture_output=True, text=True, timeout=25,
-        )
-    except subprocess.TimeoutExpired:
-        raise HTTPException(status_code=504, detail='Vulnbox tidak merespons.')
+    proc = _vm_ssh(team['ip'], remote, stdin=key + '\n')
     if proc.returncode != 0:
         raise HTTPException(
             status_code=502,
@@ -241,6 +247,50 @@ def add_authorized_key(team_id: int, body: AuthorizedKey):
         'ok': True, 'team': team['name'], 'ip': team['ip'],
         'user': VM_SSH_USER, 'total_keys': proc.stdout.strip(),
     }
+
+
+_KEY_TYPES = frozenset((
+    'ssh-ed25519', 'ssh-rsa', 'ssh-dss',
+    'ecdsa-sha2-nistp256', 'ecdsa-sha2-nistp384', 'ecdsa-sha2-nistp521',
+    'sk-ssh-ed25519@openssh.com', 'sk-ecdsa-sha2-nistp256@openssh.com',
+))
+
+
+def _parse_pubkey_line(line):
+    parts = line.split()
+    for i, token in enumerate(parts):
+        if token in _KEY_TYPES and i + 1 < len(parts):
+            try:
+                # Fingerprint SHA256 gaya OpenSSH: base64 tanpa padding dari
+                # sha256(byte kunci mentah) — sama dengan keluaran `ssh-keygen -l`.
+                digest = hashlib.sha256(base64.b64decode(parts[i + 1])).digest()
+                fp = 'SHA256:' + base64.b64encode(digest).decode().rstrip('=')
+            except Exception:
+                fp = None
+            return {'type': token, 'comment': ' '.join(parts[i + 2:]), 'fingerprint': fp}
+    return None
+
+
+@app.get('/api/team/{team_id}/authorized_keys')
+def list_authorized_keys(team_id: int):
+    """Daftar public key yang terpasang di vulnbox tim (tipe, fingerprint, komentar)."""
+    with cursor() as cur:
+        cur.execute('SELECT name, ip FROM teams WHERE id = %s', (team_id,))
+        team = cur.fetchone()
+    if not team:
+        raise HTTPException(status_code=404, detail='Tim tidak ditemukan.')
+
+    remote = ('export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; '
+              'cat ~/.ssh/authorized_keys 2>/dev/null || true')
+    proc = _vm_ssh(team['ip'], remote)
+    if proc.returncode != 0:
+        raise HTTPException(
+            status_code=502,
+            detail=f'Gagal membaca kunci di {team["ip"]}: {proc.stderr.strip()[:200]}',
+        )
+    keys = [k for k in (_parse_pubkey_line(ln.strip()) for ln in proc.stdout.splitlines())
+            if k]
+    return {'team': team['name'], 'ip': team['ip'], 'user': VM_SSH_USER, 'keys': keys}
 
 
 @app.get('/api/health')

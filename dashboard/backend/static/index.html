@@ -877,14 +877,16 @@
   .matrix-team:focus-visible,
   .matrix-cell:focus-visible,
   .modal-close:focus-visible,
-  .copy-button:focus-visible {
+  .copy-button:focus-visible,
+  .ssh-list-refresh:focus-visible {
     z-index: 2;
     outline: 2px solid var(--system);
     outline-offset: -3px;
   }
 
   .modal-close:focus,
-  .copy-button:focus {
+  .copy-button:focus,
+  .ssh-list-refresh:focus {
     outline: 2px solid var(--system);
     outline-offset: 2px;
   }
@@ -1199,6 +1201,120 @@
     user-select: all;
   }
 
+  .ssh-key-list-panel {
+    display: grid;
+    gap: var(--space-3);
+    margin-top: var(--space-2);
+    padding: var(--space-4);
+    border: 1px solid var(--ring);
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.018);
+  }
+
+  .ssh-key-list-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  .ssh-key-list-title {
+    margin: 0;
+    color: var(--system);
+    font-size: var(--fs-sm);
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .ssh-list-refresh {
+    min-width: 104px;
+    min-height: 40px;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--ring-bright);
+    border-radius: var(--radius-sm);
+    background: rgba(61, 242, 224, 0.06);
+    color: var(--system);
+    cursor: pointer;
+    font-size: var(--fs-xs);
+    font-weight: 800;
+    transition-property: color, background-color, transform, opacity;
+    transition-duration: 150ms;
+    transition-timing-function: var(--ease-out);
+  }
+
+  .ssh-list-refresh:active { transform: scale(0.96); }
+
+  .ssh-list-refresh:disabled {
+    color: var(--muted);
+    cursor: wait;
+    opacity: 0.68;
+  }
+
+  .installed-key-list {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .installed-key-row {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    border: 1px solid var(--ring);
+    border-radius: var(--radius-md);
+    background: var(--surface-soft);
+  }
+
+  .installed-key-main { min-width: 0; }
+
+  .installed-key-meta {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .installed-key-type {
+    color: var(--ink);
+    font-size: var(--fs-sm);
+  }
+
+  .installed-key-comment {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--ink-2);
+    font-size: var(--fs-xs);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .installed-key-comment.empty { color: var(--muted); font-style: italic; }
+
+  .installed-key-fingerprint {
+    display: block;
+    margin-top: var(--space-1);
+    overflow: hidden;
+    color: var(--muted);
+    font-size: var(--fs-xs);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ssh-list-state {
+    padding: var(--space-3);
+    border: 1px dashed var(--ring);
+    border-radius: var(--radius-md);
+    color: var(--muted);
+    font-size: var(--fs-sm);
+    text-align: center;
+  }
+
+  .ssh-list-state.loading { color: var(--warning); }
+  .ssh-list-state.error { color: var(--negative); }
+
   .modal-stats {
     display: grid;
     grid-template-columns: repeat(5, minmax(120px, 1fr));
@@ -1417,6 +1533,9 @@
     .copy-button { width: 100%; }
     .ssh-form-footer { align-items: stretch; flex-direction: column; }
     .ssh-submit { width: 100%; }
+    .installed-key-row { grid-template-columns: 1fr; }
+    .ssh-key-list-head { align-items: stretch; flex-direction: column; }
+    .ssh-list-refresh { width: 100%; }
   }
 
   @media (hover: hover) and (pointer: fine) {
@@ -1427,7 +1546,8 @@
     .matrix-team:hover,
     .matrix-cell:hover { background-color: rgba(61, 242, 224, 0.055); }
     .modal-close:hover,
-    .copy-button:hover { color: var(--ink); background-color: rgba(61, 242, 224, 0.12); }
+    .copy-button:hover,
+    .ssh-list-refresh:hover { color: var(--ink); background-color: rgba(61, 242, 224, 0.12); }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1443,7 +1563,8 @@
     .modal-close,
     .copy-button,
     .ssh-key-input,
-    .ssh-submit { transition-duration: 0.001ms; }
+    .ssh-submit,
+    .ssh-list-refresh { transition-duration: 0.001ms; }
     .round-progress.indeterminate .progress-fill { transform: translateX(95%); }
     .modal-backdrop .detail-dialog,
     .rank-card:hover { transform: none; }
@@ -1592,6 +1713,13 @@
       message: '',
       command: '',
       invalid: false,
+      requestId: 0
+    },
+    sshKeyList: {
+      teamId: null,
+      phase: 'idle',
+      keys: [],
+      message: '',
       requestId: 0
     }
   };
@@ -1932,6 +2060,64 @@
     </form>`;
   }
 
+  function resetSshKeyList(teamId) {
+    state.sshKeyList = {
+      teamId: String(teamId),
+      phase: 'idle',
+      keys: [],
+      message: '',
+      requestId: state.sshKeyList.requestId + 1
+    };
+  }
+
+  function ensureSshKeyList(teamId) {
+    if (state.sshKeyList.teamId !== String(teamId)) resetSshKeyList(teamId);
+    return state.sshKeyList;
+  }
+
+  function sshKeyListHTML(teamId) {
+    const list = state.sshKeyList.teamId === String(teamId)
+      ? state.sshKeyList
+      : { phase: 'idle', keys: [], message: '' };
+    const keys = Array.isArray(list.keys) ? list.keys : [];
+    const count = list.phase === 'ready' ? keys.length : '–';
+    let content = '<div class="ssh-list-state">Daftar key belum dimuat.</div>';
+
+    if (list.phase === 'loading') {
+      content = '<div class="ssh-list-state loading" role="status" aria-live="polite">Memuat daftar key...</div>';
+    } else if (list.phase === 'error') {
+      content = `<div class="ssh-list-state error" role="alert">${escValue(list.message)}</div>`;
+    } else if (list.phase === 'ready' && !keys.length) {
+      content = '<div class="ssh-list-state">Belum ada key terpasang.</div>';
+    } else if (list.phase === 'ready') {
+      content = `<div class="installed-key-list">${keys.map((key, index) => {
+        const type = safeText(key?.type, 'tipe tidak diketahui');
+        const rawComment = key?.comment === null || key?.comment === undefined ? '' : String(key.comment);
+        const comment = rawComment.trim();
+        const fingerprint = key?.fingerprint === null || key?.fingerprint === undefined
+          ? ''
+          : String(key.fingerprint);
+        const copy = fingerprint
+          ? `<button class="copy-button" type="button" data-copy-key="installed-${esc(safeText(teamId))}-${index}" data-copy-value="${esc(fingerprint)}">salin</button>`
+          : '';
+        return `<div class="installed-key-row">
+          <div class="installed-key-main">
+            <div class="installed-key-meta"><strong class="installed-key-type">${escValue(type)}</strong><span class="installed-key-comment${comment ? '' : ' empty'}" title="${esc(comment || 'tanpa komentar')}">${comment ? escValue(comment) : 'tanpa komentar'}</span></div>
+            <code class="installed-key-fingerprint" title="${esc(fingerprint || 'fingerprint tidak tersedia')}">${fingerprint ? escValue(fingerprint) : '–'}</code>
+          </div>${copy}
+        </div>`;
+      }).join('')}</div>`;
+    }
+
+    return `<section class="ssh-key-list-panel" aria-labelledby="ssh-key-list-title">
+      <div class="ssh-key-list-head">
+        <h4 class="ssh-key-list-title" id="ssh-key-list-title">&gt; KEY TERPASANG · ${count}</h4>
+        <button class="ssh-list-refresh" type="button" data-action="refresh-ssh-keys"${list.phase === 'loading' ? ' disabled' : ''}>${list.phase === 'loading' ? 'Memuat...' : 'Muat ulang'}</button>
+      </div>
+      ${content}
+    </section>`;
+  }
+
   function renderAttackMini(rows, mode) {
     if (!rows.length) return '<div class="modal-empty">belum ada aktivitas</div>';
     return `<div class="attack-mini-list">${rows.slice(0, 8).map(row => {
@@ -1980,6 +2166,7 @@
         ${copyRow('Team token', team.token, `team-${safeText(team.team_id)}-token`)}
       </div>
       ${sshKeyFormHTML(team, teamName)}
+      ${sshKeyListHTML(team.team_id)}
     </section>
     <section class="modal-section" aria-label="Ringkasan tim">
       <div class="modal-stats">
@@ -2122,6 +2309,7 @@
       ? 'hero'
       : type === 'team' ? 'matrix-team' : 'matrix-service';
     state.modal = { type, id: String(id), trigger, origin, closing: false };
+    const shouldLoadKeys = type === 'team' && ensureSshKeyList(id).phase === 'idle';
     modal.hidden = false;
     document.body.classList.add('modal-open');
     renderOpenModal();
@@ -2129,6 +2317,7 @@
       modal.classList.add('is-open');
       byId('modal-close').focus();
     });
+    if (shouldLoadKeys) void fetchSshKeyList(id);
   }
 
   function closeDetail() {
@@ -2137,6 +2326,16 @@
     const restoreTarget = state.modal.trigger;
     const restoreId = state.modal.id;
     const restoreOrigin = state.modal.origin;
+    if (state.modal.type === 'team'
+        && state.sshKeyList.teamId === String(state.modal.id)
+        && state.sshKeyList.phase === 'loading') {
+      Object.assign(state.sshKeyList, {
+        phase: 'idle',
+        keys: [],
+        message: '',
+        requestId: state.sshKeyList.requestId + 1
+      });
+    }
     state.modal.closing = true;
     modal.classList.remove('is-open');
     const finish = () => {
@@ -2176,6 +2375,62 @@
     try { copied = document.execCommand('copy'); } catch { copied = false; }
     textarea.remove();
     return copied;
+  }
+
+  function canApplySshKeyList(teamId, requestId) {
+    return state.sshKeyList.teamId === String(teamId)
+      && state.sshKeyList.requestId === requestId
+      && state.modal.type === 'team'
+      && state.modal.id === String(teamId)
+      && !byId('detail-modal').hidden
+      && !state.modal.closing;
+  }
+
+  async function fetchSshKeyList(teamId, force = false) {
+    const list = ensureSshKeyList(teamId);
+    if (list.phase === 'loading' && !force) return;
+    const requestId = list.requestId + 1;
+    Object.assign(list, {
+      phase: 'loading',
+      message: '',
+      requestId
+    });
+    renderOpenModal();
+
+    let response;
+    let payload = {};
+    try {
+      response = await fetch(`/api/team/${encodeURIComponent(teamId)}/authorized_keys`, {
+        headers: { Accept: 'application/json' },
+        cache: 'no-store'
+      });
+      try { payload = await response.json(); } catch { payload = {}; }
+    } catch {
+      if (!canApplySshKeyList(teamId, requestId)) return;
+      Object.assign(state.sshKeyList, {
+        phase: 'error',
+        keys: [],
+        message: 'Gagal menghubungi server. Coba lagi.'
+      });
+      renderOpenModal();
+      return;
+    }
+
+    if (!canApplySshKeyList(teamId, requestId)) return;
+    if (!response.ok) {
+      Object.assign(state.sshKeyList, {
+        phase: 'error',
+        keys: [],
+        message: typeof payload?.detail === 'string' ? payload.detail : 'Gagal memuat daftar SSH public key.'
+      });
+    } else {
+      Object.assign(state.sshKeyList, {
+        phase: 'ready',
+        keys: Array.isArray(payload?.keys) ? payload.keys : [],
+        message: ''
+      });
+    }
+    renderOpenModal();
   }
 
   async function submitSshKey(teamId) {
@@ -2238,6 +2493,7 @@
     }
 
     if (state.sshKeyForm.teamId !== String(teamId) || state.sshKeyForm.requestId !== requestId) return;
+    let added = false;
     if (!response.ok || payload?.ok !== true) {
       Object.assign(state.sshKeyForm, {
         phase: 'error',
@@ -2255,8 +2511,21 @@
         command: `ssh ${safeText(payload.user)}@${responseIp}`,
         invalid: false
       });
+      added = true;
     }
     renderOpenModal();
+    if (added) {
+      if (state.modal.type === 'team' && state.modal.id === String(teamId) && !byId('detail-modal').hidden) {
+        void fetchSshKeyList(teamId, true);
+      } else if (state.sshKeyList.teamId === String(teamId)) {
+        Object.assign(state.sshKeyList, {
+          phase: 'idle',
+          keys: [],
+          message: '',
+          requestId: state.sshKeyList.requestId + 1
+        });
+      }
+    }
   }
 
   function defenseTarget() {
@@ -2500,6 +2769,11 @@
     if (event.target === byId('detail-modal')) closeDetail();
   });
   byId('modal-body').addEventListener('click', async event => {
+    const refresh = event.target.closest('[data-action="refresh-ssh-keys"]');
+    if (refresh) {
+      if (state.modal.type === 'team') void fetchSshKeyList(state.modal.id, true);
+      return;
+    }
     const button = event.target.closest('.copy-button');
     if (!button) return;
     const original = button.textContent;
