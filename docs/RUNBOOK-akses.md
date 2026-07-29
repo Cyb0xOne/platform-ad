@@ -49,9 +49,17 @@ sudo ip route add 10.13.37.0/24 via 192.168.43.136
 
 ## SSH ke vulnbox
 
-Autentikasi **kunci saja**: password `root` dan `reky` di-lock dan
-`PasswordAuthentication no`. User `reky` punya `NOPASSWD: ALL`.
-Anggota baru harus menitipkan public key-nya ke `~/.ssh/authorized_keys` di VM.
+Autentikasi **kunci saja**: password di-lock dan `PasswordAuthentication no`.
+Dua akun per VM:
+
+| Akun | Untuk | Hak |
+|---|---|---|
+| `team` | peserta | `NOPASSWD: ALL` + grup `docker` |
+| `reky` | admin & automation | sama, dipakai skrip deploy |
+
+**Peserta tidak perlu menyalin kunci manual**: buka modal tim di dashboard
+`:8090`, tempel isi `~/.ssh/id_ed25519.pub`, tekan **Tambah key**. Kunci masuk
+ke `authorized_keys` akun `team` di vulnbox tim itu.
 
 Isi `~/.ssh/config`:
 
@@ -60,17 +68,25 @@ Host adlab
     HostName 100.87.29.122
     User reky
 
-Host ad-athena
+Host cyb0x1-athena
     HostName 10.13.37.11
-    User reky
+    User team
 
-Host ad-ares
+Host cyb0x1-ares
     HostName 10.13.37.12
-    User reky
+    User team
 ```
 
-Lalu `ssh ad-athena` / `ssh ad-ares`. Source service tiap tim ada di
-`~/adlab-eno/<service>/` di dalam VM masing-masing.
+Lalu `ssh cyb0x1-athena` / `ssh cyb0x1-ares`.
+
+Source service ada di **`/opt/adlab-eno/<service>/`** (symlink ke
+`/home/reky/adlab-eno`), milik grup `adlab` dengan setgid sehingga `team` dan
+`reky` sama-sama bisa mengedit. Direktori tidak dipindah karena container yang
+berjalan memakai bind mount ke path tersebut.
+
+> `/opt/adlab` (tanpa `-eno`) adalah sisa provisioning game lama — jangan
+> dipakai, dan jangan jadikan target symlink: ia direktori nyata, sehingga
+> `ln -s` justru membuat tautan di dalamnya tanpa pesan error.
 
 ## Port service
 
