@@ -1,0 +1,11 @@
+# Compose Licenser (saarCTF) untuk dijalankan DI DALAM VM tim.
+# Direkonstruksi: compose lab lama hilang, tapi image adlab/licenser sudah ada
+# di VM. Asli saarsec/licenser satu container di 12935; image lab dipakai apa
+# adanya. mem_limit ditambah agar satu container tak melahap VM saat error.
+services:
+  licenser:
+    image: adlab/licenser:latest
+    restart: unless-stopped
+    ports:
+      - "12935:12935"
+    mem_limit: 256m

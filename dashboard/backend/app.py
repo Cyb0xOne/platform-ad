@@ -58,6 +58,9 @@ SERVICE_PORTS = {
     'inbox': '1234, 4321',
     'overeats': '5432',
     'leet-date': '6789',
+    'shetcode': '8055',
+    'birthdaygram': '3000',
+    'Licenser': '12935',
 }
 
 
