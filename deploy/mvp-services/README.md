@@ -58,3 +58,29 @@ Semua `checker_type` default (state privat, tak bocor ke scoreboard):
 
 Port di atas juga harus masuk `SERVICE_PORTS` di `dashboard/backend/app.py` agar
 modal service menampilkan `host:port` yang benar.
+
+## Filler variasi kategori
+
+Ditambahkan setelah 3 MVP untuk kategori yang belum ada:
+
+| Service | Framework | Kategori | Port | Task |
+|---|---|---|---|---|
+| SaarLandCryptoGalore | saarCTF | crypto | 51349 | `cryptogalore` → `saar_slcg/checker.py` (places 1, timeout 20) |
+
+Checker `saar_slcg`: pola sama seperti `saar_licenser` — salin adapter+gamelib,
+taruh `svc/{interface.py,config.toml}` dari bank, ganti `cls` ke `SLCGInterface`.
+Karena `/checkers` bind-mount dan depsnya (`pycryptodome`) sudah di venv-saar,
+**tanpa rebuild image**. Service dibangun dari bank di host (`docker compose build`,
+base `saarsec/saarctf-ci-base:trixie` sudah ada) lalu `docker save|load` ke VM.
+
+### Catatan pwntools (penghambat kategori pwn/binary via saarCTF)
+
+Service saarCTF berbasis **TCP tube** (Calendar, BlockRope, RCEaaS) checker-nya
+memakai `gamelib.remote_connection`, yang meng-`import pwnlib` (pwntools).
+venv-saar saat ini **belum** punya pwntools, dan venv itu di-bake (bukan mount),
+sehingga menambah service pwn saarCTF menuntut:
+1. tambah `pwntools` ke baris `uv pip install` di `docker_config/celery/Dockerfile.fast`,
+2. **rebuild image celery** (pwntools menarik native deps unicorn/capstone).
+
+Layer venv-saar terbukti resolve pwntools+unicorn ~55 dtk; kegagalan install live
+hanya karena venv read-only bagi user non-root, jadi rebuild (konteks root) aman.

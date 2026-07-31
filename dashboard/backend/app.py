@@ -61,6 +61,7 @@ SERVICE_PORTS = {
     'shetcode': '8055',
     'birthdaygram': '3000',
     'Licenser': '12935',
+    'cryptogalore': '51349',
 }
 
 

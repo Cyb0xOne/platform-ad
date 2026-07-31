@@ -1,0 +1,7 @@
+services:
+  slcg:
+    image: saarsec/saarlandcryptogalore:latest
+    restart: unless-stopped
+    ports:
+      - "51349:51349"
+    mem_limit: 256m
