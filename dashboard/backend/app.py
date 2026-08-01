@@ -5,13 +5,6 @@ SELECT. Aksi kontrol (start/stop ronde dsb.) baru ditambahkan di Fase 4 lewat
 mekanisme resmi ForcAD (control.py), bukan lewat UPDATE langsung — menulis mentah
 ke tabel engine berisiko mengorupsi state permainan.
 
-Pengecualian sadar: POST /api/team/{id}/authorized_key menulis ke VULNBOX (bukan
-ke DB engine) untuk menitipkan pubkey peserta. Platform ini dipakai untuk latihan
-dan debug pembangunan A/D, dan dashboard TIDAK punya autentikasi — artinya siapa
-pun yang menjangkau :8090 bisa memberi dirinya akses root ke vulnbox mana pun.
-Trade-off ini diterima secara sadar untuk konteks lab; jangan bawa endpoint ini
-ke lingkungan kompetisi tanpa memasang auth lebih dulu.
-
 Sumber data (tabel ForcAD):
   teams, tasks            — daftar tim & service
   teamtasks               — state sekarang per (tim, task): status/skor/SLA
@@ -20,11 +13,7 @@ Sumber data (tabel ForcAD):
   gameconfig              — ronde berjalan
 """
 
-import base64
-import hashlib
 import os
-import re
-import subprocess
 from contextlib import contextmanager
 
 import psycopg2
@@ -32,14 +21,18 @@ import psycopg2.extras
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
 
 DSN = os.environ['FORCAD_DSN']  # postgresql://user:pass@host:5432/forcad
 FRONTEND = os.path.join(os.path.dirname(__file__), 'static')
-VM_SSH_KEY = os.environ.get('VM_SSH_KEY', '/secrets/vmkey')
-VM_SSH_USER = os.environ.get('VM_SSH_USER', 'team')
+REACT_FRONTEND = os.path.join(os.path.dirname(__file__), 'react')
 
 app = FastAPI(title='AD Dashboard', docs_url='/api/docs')
+
+
+class OptionalStaticFiles(StaticFiles):
+    async def check_config(self):
+        if self.directory is not None and os.path.isdir(self.directory):
+            await super().check_config()
 
 # Status ForcAD (backend/lib/models/types.py) -> label ringkas untuk UI.
 STATUS = {101: 'UP', 102: 'CORRUPT', 103: 'MUMBLE', 104: 'DOWN', 110: 'ERROR', -1: 'N/A'}
@@ -102,7 +95,7 @@ def scoreboard():
         )
         tasks = [dict(t, ports=SERVICE_PORTS.get(t['name'], '?')) for t in cur.fetchall()]
         cur.execute(
-            '''SELECT tt.team_id, tm.name AS team, tm.highlighted, tm.ip, tm.token,
+            '''SELECT tt.team_id, tm.name AS team, tm.highlighted, tm.ip,
                       tt.task_id, tt.status, tt.score, tt.stolen, tt.lost,
                       tt.checks, tt.checks_passed
                FROM teamtasks tt JOIN teams tm ON tm.id = tt.team_id'''
@@ -113,7 +106,7 @@ def scoreboard():
     for r in rows:
         t = teams.setdefault(r['team_id'], {
             'team_id': r['team_id'], 'team': r['team'],
-            'highlighted': r['highlighted'], 'ip': r['ip'], 'token': r['token'],
+            'highlighted': r['highlighted'], 'ip': r['ip'],
             'total': 0.0, 'services': {},
         })
         # Total = Σ(score × SLA), formula ctftime resmi ForcAD
@@ -189,114 +182,6 @@ def timeline():
         return [dict(r, score=round(r['score'], 1)) for r in cur.fetchall()]
 
 
-def _vm_ssh(ip, remote, stdin=None):
-    try:
-        return subprocess.run(
-            ['ssh', '-i', VM_SSH_KEY, '-o', 'BatchMode=yes',
-             '-o', 'StrictHostKeyChecking=no', '-o', 'IdentitiesOnly=yes',
-             '-o', 'ConnectTimeout=8', f'{VM_SSH_USER}@{ip}', remote],
-            input=stdin, capture_output=True, text=True, timeout=25,
-        )
-    except subprocess.TimeoutExpired:
-        raise HTTPException(status_code=504, detail='Vulnbox tidak merespons.')
-
-
-# Hanya tipe kunci yang dipakai OpenSSH modern; baris baru tidak akan pernah lolos
-# sehingga input tidak bisa menyelundupkan kunci kedua atau opsi authorized_keys
-# (mis. command=/from=) yang mengubah arti berkas.
-PUBKEY_RE = re.compile(
-    r'(?:ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp(?:256|384|521)) '
-    r'[A-Za-z0-9+/]{32,1024}={0,3}'
-    r'(?: [\w@.\-]{1,64})?'
-)
-
-
-class AuthorizedKey(BaseModel):
-    key: str
-
-
-@app.post('/api/team/{team_id}/authorized_key')
-def add_authorized_key(team_id: int, body: AuthorizedKey):
-    """Titipkan pubkey peserta ke vulnbox tim agar bisa SSH sendiri."""
-    key = body.key.strip()
-    if not PUBKEY_RE.fullmatch(key):
-        raise HTTPException(
-            status_code=400,
-            detail='Format public key tidak dikenali. Tempel isi berkas .pub '
-                   '(mis. ssh-ed25519 AAAA... nama), satu baris.',
-        )
-
-    with cursor() as cur:
-        cur.execute('SELECT name, ip FROM teams WHERE id = %s', (team_id,))
-        team = cur.fetchone()
-    if not team:
-        raise HTTPException(status_code=404, detail='Tim tidak ditemukan.')
-
-    # Kunci dikirim lewat STDIN, tidak pernah disisipkan ke string perintah, jadi
-    # tidak ada jalur command injection walau regex di atas suatu saat dilonggarkan.
-    # sort -u membuat pemasangan ulang kunci yang sama tidak menumpuk.
-    remote = (
-        'export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; '
-        'mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && '
-        'sort -u -o ~/.ssh/authorized_keys ~/.ssh/authorized_keys && '
-        'chmod 600 ~/.ssh/authorized_keys && wc -l < ~/.ssh/authorized_keys'
-    )
-    proc = _vm_ssh(team['ip'], remote, stdin=key + '\n')
-    if proc.returncode != 0:
-        raise HTTPException(
-            status_code=502,
-            detail=f'Gagal memasang kunci di {team["ip"]}: {proc.stderr.strip()[:200]}',
-        )
-    return {
-        'ok': True, 'team': team['name'], 'ip': team['ip'],
-        'user': VM_SSH_USER, 'total_keys': proc.stdout.strip(),
-    }
-
-
-_KEY_TYPES = frozenset((
-    'ssh-ed25519', 'ssh-rsa', 'ssh-dss',
-    'ecdsa-sha2-nistp256', 'ecdsa-sha2-nistp384', 'ecdsa-sha2-nistp521',
-    'sk-ssh-ed25519@openssh.com', 'sk-ecdsa-sha2-nistp256@openssh.com',
-))
-
-
-def _parse_pubkey_line(line):
-    parts = line.split()
-    for i, token in enumerate(parts):
-        if token in _KEY_TYPES and i + 1 < len(parts):
-            try:
-                # Fingerprint SHA256 gaya OpenSSH: base64 tanpa padding dari
-                # sha256(byte kunci mentah) — sama dengan keluaran `ssh-keygen -l`.
-                digest = hashlib.sha256(base64.b64decode(parts[i + 1])).digest()
-                fp = 'SHA256:' + base64.b64encode(digest).decode().rstrip('=')
-            except Exception:
-                fp = None
-            return {'type': token, 'comment': ' '.join(parts[i + 2:]), 'fingerprint': fp}
-    return None
-
-
-@app.get('/api/team/{team_id}/authorized_keys')
-def list_authorized_keys(team_id: int):
-    """Daftar public key yang terpasang di vulnbox tim (tipe, fingerprint, komentar)."""
-    with cursor() as cur:
-        cur.execute('SELECT name, ip FROM teams WHERE id = %s', (team_id,))
-        team = cur.fetchone()
-    if not team:
-        raise HTTPException(status_code=404, detail='Tim tidak ditemukan.')
-
-    remote = ('export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; '
-              'cat ~/.ssh/authorized_keys 2>/dev/null || true')
-    proc = _vm_ssh(team['ip'], remote)
-    if proc.returncode != 0:
-        raise HTTPException(
-            status_code=502,
-            detail=f'Gagal membaca kunci di {team["ip"]}: {proc.stderr.strip()[:200]}',
-        )
-    keys = [k for k in (_parse_pubkey_line(ln.strip()) for ln in proc.stdout.splitlines())
-            if k]
-    return {'team': team['name'], 'ip': team['ip'], 'user': VM_SSH_USER, 'keys': keys}
-
-
 @app.get('/api/health')
 def health():
     try:
@@ -309,7 +194,33 @@ def health():
 
 @app.get('/')
 def index():
+    if os.environ.get('DASHBOARD_DEFAULT_UI', 'legacy') == 'react':
+        return react_index()
     return FileResponse(os.path.join(FRONTEND, 'index.html'))
 
 
+@app.get('/legacy/')
+def legacy_index():
+    return FileResponse(os.path.join(FRONTEND, 'index.html'))
+
+
+@app.get('/next/')
+def react_index():
+    react_index_path = os.path.join(REACT_FRONTEND, 'index.html')
+    if not os.path.isfile(react_index_path):
+        raise HTTPException(
+            status_code=503,
+            detail='React dashboard build is unavailable.',
+        )
+    return FileResponse(react_index_path)
+
+
+app.mount(
+    '/assets',
+    OptionalStaticFiles(
+        directory=os.path.join(REACT_FRONTEND, 'assets'),
+        check_dir=False,
+    ),
+    name='react-assets',
+)
 app.mount('/', StaticFiles(directory=FRONTEND), name='static')

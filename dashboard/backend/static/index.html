@@ -2163,7 +2163,6 @@
       <h3 class="modal-section-title" id="team-access-title">&gt; AKSES TIM</h3>
       <div class="credential-list">
         ${copyRow('IP address', team.ip, `team-${safeText(team.team_id)}-ip`)}
-        ${copyRow('Team token', team.token, `team-${safeText(team.team_id)}-token`)}
       </div>
       ${sshKeyFormHTML(team, teamName)}
       ${sshKeyListHTML(team.team_id)}
