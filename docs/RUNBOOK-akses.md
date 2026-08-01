@@ -15,7 +15,16 @@ Cara masuk ke lab: submit flag, akses vulnbox, dan port tiap service.
 ## Submit flag
 
 Token tim **adalah** kredensial submit — dikirim sebagai header `X-Team-Token`.
-Token juga tampil di modal tim pada dashboard `:8090`.
+Token tidak lagi tampil di War Room publik. Operator mengambil token dari listener
+admin melalui SSH tunnel, lalu membagikannya ke pemilik tim lewat kanal terpisah:
+
+```bash
+ssh -L 8091:127.0.0.1:8091 adlab
+curl http://127.0.0.1:8091/api/admin/team/<team_id>/token
+```
+
+Token yang pernah tampil di War Room sebelum pemisahan listener harus dirotasi
+sebelum ronde bernilai dimulai.
 
 ```bash
 curl -X PUT http://192.168.43.136:8080/flags/ \
