@@ -6,37 +6,38 @@ Cara masuk ke lab: submit flag, akses vulnbox, dan port tiap service.
 
 | Apa | Alamat |
 |---|---|
-| Scoreboard ForcAD (bawaan) | http://192.168.43.136:8080 |
-| Dashboard War Room (custom) | http://192.168.43.136:8090 |
-| Flag receiver | http://192.168.43.136:8080/flags/ |
+| Scoreboard ForcAD (bawaan) | http://100.87.29.122:8080 |
+| Dashboard War Room (custom) | http://100.87.29.122:8090 |
+| Flag receiver | http://100.87.29.122:8080/flags/ |
 | Vulnbox Athena | 10.13.37.11 |
 | Vulnbox Ares | 10.13.37.12 |
 
+`100.87.29.122` = alamat server via Tailscale (jalan dari mana saja). Kalau se-LAN
+dengan server, `192.168.43.136` juga jalan.
+
 ## Submit flag
 
-Token tim **adalah** kredensial submit — dikirim sebagai header `X-Team-Token`.
-Token tidak lagi tampil di War Room publik. Operator mengambil token dari listener
-admin melalui SSH tunnel, lalu membagikannya ke pemilik tim lewat kanal terpisah:
+Cara lengkap: **[`RUNBOOK-submit-flag.md`](RUNBOOK-submit-flag.md)**. Ringkasnya
+`PUT http://100.87.29.122:8080/flags/`, header `X-Team-Token: <token tim>`, body
+array JSON flag, maks 100 per request (kirim sekaligus untuk hindari `429`).
+
+Token tim **tidak** tampil di dashboard publik dan berganti tiap game di-reset. Pada
+deploy sekarang (dashboard listener tunggal `:8090`), operator mengambil token langsung
+dari DB engine lalu membagikan lewat kanal terpisah:
 
 ```bash
-ssh -L 8091:127.0.0.1:8091 adlab
-curl http://127.0.0.1:8091/api/admin/team/<team_id>/token
+ssh adlab 'export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; \
+  docker exec -i adlab-dashboard python3' <<'PY'
+import os, psycopg2
+c = psycopg2.connect(os.environ['FORCAD_DSN']); cur = c.cursor()
+cur.execute("SELECT name, token FROM teams ORDER BY id")
+for n, t in cur.fetchall(): print(f"{n}\t{t}")
+PY
 ```
 
-Token yang pernah tampil di War Room sebelum pemisahan listener harus dirotasi
-sebelum ronde bernilai dimulai.
-
-```bash
-curl -X PUT http://192.168.43.136:8080/flags/ \
-     -H "X-Team-Token: <token tim>" \
-     -H "Content-Type: application/json" \
-     -d '["FLAG1=","FLAG2="]'
-```
-
-Maksimal 100 flag per request; kirim sekaligus dalam satu request untuk
-menghindari rate limit nginx yang membalas `429`. Balasan per flag, contoh:
-`{"msg":"... Flag is invalid or too old."}`. Token salah dijawab
-`{"error":"Invalid team token."}`.
+> Dashboard aman dua-listener (publik `:8090` + admin loopback `:8091` untuk token &
+> kontrol) sudah disiapkan di `deploy/dashboard-cutover.sh` tapi **belum di-cutover** di
+> server. Setelah cutover, token diambil lewat `ssh -L 8091:127.0.0.1:8091 adlab`.
 
 ## Akses jaringan VM
 
