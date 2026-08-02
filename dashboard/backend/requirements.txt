@@ -1,3 +1,26 @@
+# Lockfile ter-pin penuh (dari `pip freeze` image known-good). Mencegah pip
+# dependency-resolver backtracking / OOM saat build di host bersumber daya
+# terbatas (server kompetisi ~4GB free). Direct deps di blok pertama; sisanya
+# transitif yang dikunci agar install deterministik & ringan memori.
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
 psycopg2-binary==2.9.9
+
+# --- transitive (locked) ---
+annotated-types==0.8.0
+anyio==4.14.2
+click==8.4.2
+h11==0.16.0
+httptools==0.8.0
+idna==3.18
+packaging==26.2
+pydantic==2.13.4
+pydantic_core==2.46.4
+python-dotenv==1.2.2
+PyYAML==6.0.3
+starlette==0.38.6
+typing-inspection==0.4.2
+typing_extensions==4.16.0
+uvloop==0.22.1
+watchfiles==1.2.0
+websockets==17.0
